@@ -486,59 +486,103 @@ exports.generateConsentRecords = async (req, res, next) => {
     // Create consent records
     const consentRecords = [];
     const notificationRecords = [];
+    const emailResults = {
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      errors: []
+    };
     
     for (const user of targetUsers) {
-      // Generate unique consent token
-      const consentToken = require('crypto').randomBytes(32).toString('hex');
-      
-      // Create consent record
-      const consentRecord = await Consent.create({
-        userId: user._id,
-        surveyId: survey._id,
-        consentGiven: null,
-        consentTimestamp: null,
-        consentToken: consentToken,
-        emailSent: false,
-        emailSentAt: null
-      });
-      
-      consentRecords.push(consentRecord);
-      
-      // Create notification record
-      const notificationRecord = await Notification.create({
-        userId: user._id,
-        surveyId: survey._id,
-        type: 'consent_request',
-        sent: false,
-        sentAt: null,
-        deliveryStatus: 'pending'
-      });
-      
-      notificationRecords.push(notificationRecord);
-      
-      // Send consent email
       try {
-        await sendConsentRequestEmail({
-          to: user.email,
-          userName: user.name,
-          surveyName: survey.name,
-          publishDate: survey.publishDate,
-          consentToken: consentRecord.consentToken
+        // Check if consent record already exists for this user and survey
+        let consentRecord = await Consent.findOne({
+          userId: user._id,
+          surveyId: survey._id
         });
         
-        // Update consent record and notification
-        await Consent.findByIdAndUpdate(consentRecord._id, {
-          emailSent: true,
-          emailSentAt: Date.now()
+        let notificationRecord = await Notification.findOne({
+          userId: user._id,
+          surveyId: survey._id,
+          type: 'consent_request'
         });
         
-        await Notification.findByIdAndUpdate(notificationRecord._id, {
-          sent: true,
-          sentAt: Date.now(),
-          deliveryStatus: 'sent'
+        // If consent record doesn't exist, create it
+        if (!consentRecord) {
+          // Generate unique consent token
+          const consentToken = require('crypto').randomBytes(32).toString('hex');
+          
+          // Create consent record
+          consentRecord = await Consent.create({
+            userId: user._id,
+            surveyId: survey._id,
+            consentGiven: null,
+            consentTimestamp: null,
+            consentToken: consentToken,
+            emailSent: false,
+            emailSentAt: null
+          });
+        }
+        
+        consentRecords.push(consentRecord);
+        
+        // If notification record doesn't exist, create it
+        if (!notificationRecord) {
+          notificationRecord = await Notification.create({
+            userId: user._id,
+            surveyId: survey._id,
+            type: 'consent_request',
+            sent: false,
+            sentAt: null,
+            deliveryStatus: 'pending'
+          });
+        }
+        
+        notificationRecords.push(notificationRecord);
+        
+        // Send consent email only if not already sent
+        if (!consentRecord.emailSent) {
+          try {
+            await sendConsentRequestEmail({
+              to: user.email,
+              userName: user.name,
+              surveyName: survey.name,
+              publishDate: survey.publishDate,
+              consentToken: consentRecord.consentToken
+            });
+            
+            // Update consent record and notification
+            await Consent.findByIdAndUpdate(consentRecord._id, {
+              emailSent: true,
+              emailSentAt: Date.now()
+            });
+            
+            await Notification.findByIdAndUpdate(notificationRecord._id, {
+              sent: true,
+              sentAt: Date.now(),
+              deliveryStatus: 'sent'
+            });
+            
+            emailResults.sent++;
+          } catch (emailError) {
+            console.error(`Failed to send email to ${user.email}:`, emailError);
+            emailResults.failed++;
+            emailResults.errors.push({
+              email: user.email,
+              error: emailError.message
+            });
+          }
+        } else {
+          emailResults.skipped++;
+        }
+      } catch (recordError) {
+        console.error(`Failed to process user ${user._id}:`, recordError);
+        emailResults.failed++;
+        emailResults.errors.push({
+          userId: user._id,
+          email: user.email,
+          error: recordError.message
         });
-      } catch (error) {
-        console.error(`Failed to send email to ${user.email}:`, error);
       }
     }
     
@@ -553,7 +597,8 @@ exports.generateConsentRecords = async (req, res, next) => {
       count: consentRecords.length,
       data: {
         consentRecords,
-        notificationRecords
+        notificationRecords,
+        emailResults
       }
     });
   } catch (err) {
