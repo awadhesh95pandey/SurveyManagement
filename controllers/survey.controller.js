@@ -14,19 +14,20 @@ const getTargetUsers = async (survey) => {
     targetUsers = await User.find({
       _id: { $in: survey.targetEmployees },
       isActive: true
-    });
+    }).select('_id name email department role');
   } else if (survey.department) {
-    // If a department is targeted
+    // If a department is targeted, fetch all employees from that department
     targetUsers = await User.find({
       department: survey.department,
-      isActive: true
-    });
+      isActive: true,
+      role: { $in: ['employee', 'manager'] }
+    }).select('_id name email department role');
   } else {
     // If all employees are targeted
     targetUsers = await User.find({
       role: { $in: ['employee', 'manager'] },
       isActive: true
-    });
+    }).select('_id name email department role');
   }
   
   return targetUsers;
@@ -69,6 +70,14 @@ exports.createSurvey = async (req, res, next) => {
       });
     }
     
+    // If department was specified but no specific targetEmployees, populate targetEmployees with department users
+    if (survey.department && (!survey.targetEmployees || survey.targetEmployees.length === 0)) {
+      survey.targetEmployees = targetUsers.map(user => user._id);
+      await Survey.findByIdAndUpdate(survey._id, { 
+        targetEmployees: survey.targetEmployees 
+      });
+    }
+    
     // Generate consent records and send emails
     const consentRecords = [];
     const notificationRecords = [];
@@ -80,12 +89,16 @@ exports.createSurvey = async (req, res, next) => {
     
     for (const user of targetUsers) {
       try {
+        // Generate unique consent token
+        const consentToken = require('crypto').randomBytes(32).toString('hex');
+        
         // Create consent record
         const consentRecord = await Consent.create({
           userId: user._id,
           surveyId: survey._id,
           consentGiven: null,
           consentTimestamp: null,
+          consentToken: consentToken,
           emailSent: false,
           emailSentAt: null
         });
@@ -475,12 +488,16 @@ exports.generateConsentRecords = async (req, res, next) => {
     const notificationRecords = [];
     
     for (const user of targetUsers) {
+      // Generate unique consent token
+      const consentToken = require('crypto').randomBytes(32).toString('hex');
+      
       // Create consent record
       const consentRecord = await Consent.create({
         userId: user._id,
         surveyId: survey._id,
         consentGiven: null,
         consentTimestamp: null,
+        consentToken: consentToken,
         emailSent: false,
         emailSentAt: null
       });
