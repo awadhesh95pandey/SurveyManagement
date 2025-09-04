@@ -39,16 +39,21 @@ EMAIL_PASSWORD=your-password
 EMAIL_FROM=Survey Management System <your-email@outlook.com>
 ```
 
-### Option 3: Custom SMTP Server
+### Option 3: Custom SMTP Server (Example: Paisalo)
 
 ```env
-EMAIL_HOST=smtp.your-domain.com
-EMAIL_PORT=587
-EMAIL_SECURE=false
-EMAIL_USERNAME=your-email@your-domain.com
+EMAIL_HOST=email.paisalo.in
+EMAIL_PORT=465
+EMAIL_SECURE=true
+EMAIL_USERNAME=noreply1@paisalo.in
 EMAIL_PASSWORD=your-password
-EMAIL_FROM=Survey Management System <your-email@your-domain.com>
+EMAIL_FROM=Survey Management System <noreply1@paisalo.in>
 ```
+
+**Note:** For Paisalo SMTP server:
+- Use **port 465** with **SSL enabled** (`EMAIL_SECURE=true`)
+- This corresponds to `SecureSocketOptions.SslOnConnect` in C# code
+- The server requires implicit SSL connection
 
 ## Testing Email Configuration
 
