@@ -5,6 +5,33 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { sendConsentRequestEmail } = require('../utils/emailSender');
 
+// Helper function to get target users for a survey
+const getTargetUsers = async (survey) => {
+  let targetUsers = [];
+  
+  if (survey.targetEmployees && survey.targetEmployees.length > 0) {
+    // If specific employees are targeted
+    targetUsers = await User.find({
+      _id: { $in: survey.targetEmployees },
+      isActive: true
+    });
+  } else if (survey.department) {
+    // If a department is targeted
+    targetUsers = await User.find({
+      department: survey.department,
+      isActive: true
+    });
+  } else {
+    // If all employees are targeted
+    targetUsers = await User.find({
+      role: { $in: ['employee', 'manager'] },
+      isActive: true
+    });
+  }
+  
+  return targetUsers;
+};
+
 // @desc    Create new survey
 // @route   POST /api/surveys
 // @access  Private (Admin only)
@@ -16,18 +43,129 @@ exports.createSurvey = async (req, res, next) => {
     // Calculate end date
     const publishDate = new Date(req.body.publishDate);
     const endDate = new Date(publishDate);
-    endDate.setDate(endDate.getDate() + req.body.durationDays);
+    const durationDays = req.body.durationDays || req.body.noOfDays || 7;
+    endDate.setDate(endDate.getDate() + durationDays);
     req.body.endDate = endDate;
+    req.body.durationDays = durationDays;
     
     // Set consent deadline to publish date
     req.body.consentDeadline = publishDate;
     
+    // Validate that we have either targetEmployees or department
+    if (!req.body.targetEmployees && !req.body.department) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide either target employees or a department'
+      });
+    }
+    
     // Create survey
     const survey = await Survey.create(req.body);
     
+    // Get target users for consent generation
+    const targetUsers = await getTargetUsers(survey);
+    
+    if (targetUsers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active users found for the specified target criteria'
+      });
+    }
+    
+    // Generate consent records and send emails
+    const consentRecords = [];
+    const notificationRecords = [];
+    const emailResults = {
+      sent: 0,
+      failed: 0,
+      errors: []
+    };
+    
+    for (const user of targetUsers) {
+      try {
+        // Create consent record
+        const consentRecord = await Consent.create({
+          userId: user._id,
+          surveyId: survey._id,
+          consentGiven: null,
+          consentTimestamp: null,
+          emailSent: false,
+          emailSentAt: null
+        });
+        
+        consentRecords.push(consentRecord);
+        
+        // Create notification record
+        const notificationRecord = await Notification.create({
+          userId: user._id,
+          surveyId: survey._id,
+          type: 'consent_request',
+          sent: false,
+          sentAt: null,
+          deliveryStatus: 'pending'
+        });
+        
+        notificationRecords.push(notificationRecord);
+        
+        // Send consent email
+        try {
+          await sendConsentRequestEmail({
+            to: user.email,
+            userName: user.name,
+            surveyName: survey.name,
+            publishDate: survey.publishDate,
+            consentToken: consentRecord.consentToken
+          });
+          
+          // Update consent record and notification
+          await Consent.findByIdAndUpdate(consentRecord._id, {
+            emailSent: true,
+            emailSentAt: Date.now()
+          });
+          
+          await Notification.findByIdAndUpdate(notificationRecord._id, {
+            sent: true,
+            sentAt: Date.now(),
+            deliveryStatus: 'sent'
+          });
+          
+          emailResults.sent++;
+        } catch (emailError) {
+          console.error(`Failed to send email to ${user.email}:`, emailError);
+          emailResults.failed++;
+          emailResults.errors.push({
+            email: user.email,
+            error: emailError.message
+          });
+        }
+      } catch (recordError) {
+        console.error(`Failed to create records for user ${user._id}:`, recordError);
+        emailResults.failed++;
+        emailResults.errors.push({
+          userId: user._id,
+          email: user.email,
+          error: recordError.message
+        });
+      }
+    }
+    
+    // Update survey status to pending_consent
+    await Survey.findByIdAndUpdate(
+      survey._id,
+      { status: 'pending_consent', updatedAt: Date.now() }
+    );
+    
+    // Get updated survey with new status
+    const updatedSurvey = await Survey.findById(survey._id);
+    
     res.status(201).json({
       success: true,
-      data: survey
+      data: updatedSurvey,
+      consentProcess: {
+        targetUsersCount: targetUsers.length,
+        consentRecordsCreated: consentRecords.length,
+        emailResults: emailResults
+      }
     });
   } catch (err) {
     next(err);
@@ -333,24 +471,7 @@ exports.generateConsentRecords = async (req, res, next) => {
     }
     
     // Get target users
-    let targetUsers = [];
-    
-    if (survey.targetEmployees && survey.targetEmployees.length > 0) {
-      // If specific employees are targeted
-      targetUsers = await User.find({
-        _id: { $in: survey.targetEmployees }
-      });
-    } else if (survey.department) {
-      // If a department is targeted
-      targetUsers = await User.find({
-        department: survey.department
-      });
-    } else {
-      // If all employees are targeted
-      targetUsers = await User.find({
-        role: { $in: ['employee', 'manager'] }
-      });
-    }
+    const targetUsers = await getTargetUsers(survey);
     
     // Create consent records
     const consentRecords = [];
@@ -362,7 +483,7 @@ exports.generateConsentRecords = async (req, res, next) => {
         userId: user._id,
         surveyId: survey._id,
         consentGiven: null,
-        timestamp: null,
+        consentTimestamp: null,
         emailSent: false,
         emailSentAt: null
       });

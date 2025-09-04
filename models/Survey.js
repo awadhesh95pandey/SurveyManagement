@@ -17,12 +17,22 @@ const SurveySchema = new mongoose.Schema({
     min: [1, 'Duration must be at least 1 day'],
     max: [365, 'Duration cannot exceed 365 days']
   },
+  durationDays: {
+    type: Number,
+    min: [1, 'Duration must be at least 1 day'],
+    max: [365, 'Duration cannot exceed 365 days']
+  },
+  endDate: {
+    type: Date
+  },
+  consentDeadline: {
+    type: Date
+  },
   department: {
     type: String,
-    ref: 'Department',
-    required: [true, 'Please provide target department']
+    ref: 'Department'
   },
-  employees: [{
+  targetEmployees: [{
     type: mongoose.Schema.ObjectId,
     ref: 'User'
   }],
@@ -33,7 +43,7 @@ const SurveySchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'active', 'closed'],
+    enum: ['draft', 'pending_consent', 'active', 'closed'],
     default: 'draft'
   },
   // Token for anonymous access
