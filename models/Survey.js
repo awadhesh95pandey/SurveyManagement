@@ -13,7 +13,7 @@ const SurveySchema = new mongoose.Schema({
   },
   noOfDays: {
     type: Number,
-    required: [true, 'Please provide duration in days'],
+    required: [false, 'Please provide duration in days'],
     min: [1, 'Duration must be at least 1 day'],
     max: [365, 'Duration cannot exceed 365 days']
   },

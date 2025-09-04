@@ -2,6 +2,7 @@
 
 // 1. Create a new survey
 function createSurvey(surveyData) {
+  debugger;
   const survey = {
     name: surveyData.name,
     publishDate: new Date(surveyData.publishDate),
