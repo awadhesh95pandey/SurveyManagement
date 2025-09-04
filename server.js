@@ -16,6 +16,9 @@ const anonymousRoutes = require('./routes/anonymous');
 const departmentRoutes = require('./routes/department.routes');
 const employeeRoutes = require('./routes/employee.routes');
 
+// Import seeders
+const { runSeeders } = require('./seeders');
+
 // Create Express app
 const app = express();
 
@@ -33,8 +36,15 @@ mongoose.connect("mongodb://127.0.0.1:27017/ManagementSurvey", {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => {
+.then(async () => {
   console.log('Connected to MongoDB');
+  
+  // Run database seeders
+  try {
+    await runSeeders();
+  } catch (error) {
+    console.error('Seeding failed, but server will continue:', error);
+  }
 })
 .catch(err => {
   console.error('MongoDB connection error:', err);
