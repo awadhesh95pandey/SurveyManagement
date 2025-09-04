@@ -727,3 +727,118 @@ exports.getDepartments = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Send survey links to specific departments
+// @route   POST /api/surveys/:id/send-to-departments
+// @access  Private (Admin only)
+exports.sendSurveyLinksToDepartments = async (req, res, next) => {
+  try {
+    const { departmentIds, employeeIds } = req.body;
+
+    if (!departmentIds || !Array.isArray(departmentIds) || departmentIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide at least one department ID'
+      });
+    }
+
+    const survey = await Survey.findById(req.params.id);
+    
+    if (!survey) {
+      return res.status(404).json({
+        success: false,
+        message: `Survey not found with id of ${req.params.id}`
+      });
+    }
+
+    // Make sure user is survey creator or admin
+    if (survey.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        message: `User ${req.user.id} is not authorized to send survey links for this survey`
+      });
+    }
+
+    // Get target employees based on department IDs or specific employee IDs
+    let targetEmployees = [];
+    
+    if (employeeIds && Array.isArray(employeeIds) && employeeIds.length > 0) {
+      // Use specific employee IDs if provided
+      targetEmployees = await User.find({
+        _id: { $in: employeeIds },
+        isActive: true
+      }).populate('department', 'name code');
+    } else {
+      // Get employees from specified departments
+      targetEmployees = await User.find({
+        department: { $in: departmentIds },
+        isActive: true,
+        role: { $in: ['employee', 'manager'] }
+      }).populate('department', 'name code');
+    }
+
+    if (targetEmployees.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active employees found in the specified departments'
+      });
+    }
+
+    // Create notifications for each target employee
+    const notifications = [];
+    const surveyLink = `${process.env.CLIENT_URL}/surveys/${survey._id}/take`;
+
+    for (const employee of targetEmployees) {
+      // Create notification
+      const notification = await Notification.create({
+        userId: employee._id,
+        type: 'survey_invitation',
+        title: `New Survey: ${survey.name}`,
+        message: `You have been invited to participate in the survey "${survey.name}". Please click the link to start.`,
+        data: {
+          surveyId: survey._id,
+          surveyName: survey.name,
+          surveyLink: surveyLink,
+          dueDate: survey.endDate
+        },
+        priority: 'medium'
+      });
+
+      notifications.push(notification);
+
+      // TODO: Send email notification (implement email service)
+      // await sendSurveyInvitationEmail(employee.email, {
+      //   employeeName: employee.name,
+      //   surveyName: survey.name,
+      //   surveyLink: surveyLink,
+      //   dueDate: survey.endDate
+      // });
+    }
+
+    // Update survey with target employees if not already set
+    if (!survey.targetEmployees || survey.targetEmployees.length === 0) {
+      survey.targetEmployees = targetEmployees.map(emp => emp._id);
+      await survey.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Survey links sent successfully to ${targetEmployees.length} employees`,
+      data: {
+        surveyId: survey._id,
+        surveyName: survey.name,
+        targetEmployees: targetEmployees.length,
+        departments: departmentIds.length,
+        notifications: notifications.length,
+        employeeDetails: targetEmployees.map(emp => ({
+          id: emp._id,
+          name: emp.name,
+          email: emp.email,
+          department: emp.department?.name || 'No Department'
+        }))
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
