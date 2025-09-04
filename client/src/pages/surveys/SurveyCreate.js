@@ -245,11 +245,16 @@ const SurveyCreate = () => {
                         Loading departments...
                       </MenuItem>
                     ) : (
-                      departments.map((dept) => (
-                        <MenuItem key={dept} value={dept}>
-                          {dept}
-                        </MenuItem>
-                      ))
+                      [
+                        <MenuItem key="all" value="All Departments">
+                          All Departments
+                        </MenuItem>,
+                        ...departments.map((dept) => (
+                          <MenuItem key={dept._id} value={dept.name}>
+                            {dept.name}
+                          </MenuItem>
+                        ))
+                      ]
                     )}
                   </Select>
                   {formik.touched.department && formik.errors.department && (
