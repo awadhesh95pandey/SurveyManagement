@@ -12,7 +12,8 @@ const {
   updateSurveyStatuses,
   getConsentStatus,
   getEmployees,
-  getDepartments
+  getDepartments,
+  sendSurveyLinksToDepartments
 } = require('../controllers/survey.controller');
 
 // Include other resource routers
@@ -55,6 +56,10 @@ router.route('/:id/status')
 
 router.route('/:id/generate-consent')
   .post(protect, authorize('admin'), generateConsentRecords);
+
+// Send survey links to departments
+router.route('/:id/send-to-departments')
+  .post(protect, authorize('admin'), sendSurveyLinksToDepartments);
 
 // Consent status for a survey (admin only)
 router.route('/:id/consent/status')

@@ -25,12 +25,15 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PendingIcon from '@mui/icons-material/Pending';
 import EmailIcon from '@mui/icons-material/Email';
+import BusinessIcon from '@mui/icons-material/Business';
+import DepartmentSurveyDistribution from '../../components/survey/DepartmentSurveyDistribution';
 
 const ConsentStatus = () => {
   const [survey, setSurvey] = useState(null);
   const [consentData, setConsentData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sendingEmails, setSendingEmails] = useState(false);
+  const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const { surveyId } = useParams();
   const navigate = useNavigate();
 
@@ -115,6 +118,17 @@ const ConsentStatus = () => {
     navigate(`/surveys/${surveyId}`);
   };
 
+  const handleSendToDepartments = () => {
+    setShowDepartmentDialog(true);
+  };
+
+  const handleDistributionComplete = (distributionData) => {
+    // Refresh consent data after distribution
+    fetchSurveyAndConsent();
+    setShowDepartmentDialog(false);
+    toast.success('Survey links distributed successfully!');
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -134,17 +148,29 @@ const ConsentStatus = () => {
           <Typography variant="h4" component="h1">
             Consent Management
           </Typography>
-          {isConsentPeriodActive() && (
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<EmailIcon />}
-              onClick={handleSendConsentEmails}
-              disabled={sendingEmails}
-            >
-              {sendingEmails ? 'Sending...' : 'Send Consent Emails'}
-            </Button>
-          )}
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {isConsentPeriodActive() && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<EmailIcon />}
+                onClick={handleSendConsentEmails}
+                disabled={sendingEmails}
+              >
+                {sendingEmails ? 'Sending...' : 'Send Consent Emails'}
+              </Button>
+            )}
+            {stats.consented > 0 && (
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<BusinessIcon />}
+                onClick={handleSendToDepartments}
+              >
+                Send Survey Links
+              </Button>
+            )}
+          </Box>
         </Box>
 
         <Paper sx={{ p: 3, mb: 3 }}>
@@ -274,10 +300,18 @@ const ConsentStatus = () => {
             Back to Survey
           </Button>
         </Box>
+
+        {/* Department Survey Distribution Dialog */}
+        <DepartmentSurveyDistribution
+          open={showDepartmentDialog}
+          onClose={() => setShowDepartmentDialog(false)}
+          surveyId={surveyId}
+          surveyTitle={survey?.name}
+          onDistributionComplete={handleDistributionComplete}
+        />
       </Box>
     </Container>
   );
 };
 
 export default ConsentStatus;
-
