@@ -51,7 +51,7 @@ const NotificationList = () => {
 
   const handleMarkAsRead = async (notificationId) => {
     try {
-      const result = await notificationApi.markAsRead(notificationId);
+      const result = await notificationApi.markNotificationRead(notificationId);
       if (result.success) {
         setNotifications(notifications.map(notif => 
           notif._id === notificationId 
@@ -252,4 +252,3 @@ const NotificationList = () => {
 };
 
 export default NotificationList;
-

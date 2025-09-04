@@ -917,3 +917,62 @@ export const employeeApi = {
     }
   }
 };
+
+// Auth API
+export const authApi = {
+  // Get current user profile
+  getProfile: async () => {
+    try {
+      const response = await axios.get('/api/auth/me');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to fetch user profile' 
+      };
+    }
+  },
+
+  // Login user
+  login: async (credentials) => {
+    try {
+      const response = await axios.post('/api/auth/login', credentials);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error logging in:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to login' 
+      };
+    }
+  },
+
+  // Register user
+  register: async (userData) => {
+    try {
+      const response = await axios.post('/api/auth/register', userData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error registering user:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to register user' 
+      };
+    }
+  },
+
+  // Logout user
+  logout: async () => {
+    try {
+      const response = await axios.get('/api/auth/logout');
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Error logging out:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to logout' 
+      };
+    }
+  }
+};
