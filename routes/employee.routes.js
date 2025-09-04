@@ -28,7 +28,24 @@ router.get('/', protect, async (req, res) => {
     }
 
     if (department) {
-      query.department = department;
+      // If department is provided, find the department by name and use its ID
+      const departmentDoc = await Department.findOne({ name: department });
+      if (departmentDoc) {
+        query.department = departmentDoc._id;
+      } else {
+        // If department not found, return empty result
+        return res.status(200).json({
+          success: true,
+          count: 0,
+          total: 0,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            pages: 0
+          },
+          data: []
+        });
+      }
     }
 
     if (role) {
@@ -575,7 +592,18 @@ router.get('/managers/list', protect, async (req, res) => {
     };
 
     if (department) {
-      query.department = department;
+      // If department is provided, find the department by name and use its ID
+      const departmentDoc = await Department.findOne({ name: department });
+      if (departmentDoc) {
+        query.department = departmentDoc._id;
+      } else {
+        // If department not found, return empty result
+        return res.status(200).json({
+          success: true,
+          count: 0,
+          data: []
+        });
+      }
     }
 
     const managers = await User.find(query)
@@ -598,4 +626,3 @@ router.get('/managers/list', protect, async (req, res) => {
 });
 
 module.exports = router;
-
