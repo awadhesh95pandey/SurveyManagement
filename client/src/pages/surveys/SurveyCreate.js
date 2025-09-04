@@ -7,13 +7,18 @@ import {
   TextField,
   Button,
   Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
   CircularProgress,
   Divider,
   Autocomplete,
   Chip
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { surveyApi, employeeApi } from '../../services/api';
+import { surveyApi, employeeApi, departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -23,8 +28,11 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 const SurveyCreate = () => {
   const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [departments, setDepartments] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
   const navigate = useNavigate();
 
   // Form validation schema
@@ -39,9 +47,14 @@ const SurveyCreate = () => {
       .required('Duration is required')
       .positive('Duration must be positive')
       .integer('Duration must be a whole number'),
-    targetUsers: Yup.array()
-      .min(1, 'Select at least one user for the survey')
-      .required('Target users are required')
+    department: Yup.string()
+      .required('Department is required'),
+    targetEmployees: Yup.array()
+      .when('department', {
+        is: 'All Departments',
+        then: (schema) => schema,
+        otherwise: (schema) => schema.min(1, 'Select at least one employee')
+      })
   });
 
   // Formik setup
@@ -50,7 +63,8 @@ const SurveyCreate = () => {
       name: '',
       publishDate: null,
       durationDays: 7,
-      targetUsers: []
+      department: '',
+      targetEmployees: []
     },
     validationSchema: validationSchema,
     onSubmit: async (values) => {
@@ -61,7 +75,7 @@ const SurveyCreate = () => {
         const surveyData = {
           ...values,
           publishDate: values.publishDate ? values.publishDate.toISOString() : null,
-          targetUsers: values.targetUsers.map(user => user.id)
+          targetEmployees: values.targetEmployees.map(emp => emp.id)
         };
 
         const result = await surveyApi.createSurvey(surveyData);
@@ -80,35 +94,64 @@ const SurveyCreate = () => {
     }
   });
 
-  // Fetch users function
-  const fetchUsers = async () => {
-    setLoadingUsers(true);
+  // Fetch departments function
+  const fetchDepartments = async () => {
+    setLoadingDepartments(true);
     try {
-      const result = await employeeApi.getEmployees();
+      const result = await departmentApi.getDepartments();
       if (result.success) {
-        const userData = result.data.map(user => ({
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          department: user.department?.name || 'No Department',
-          role: user.role
-        }));
-        setUsers(userData);
+        setDepartments(result.data);
       } else {
-        toast.error(result.message || 'Failed to fetch users');
+        toast.error(result.message || 'Failed to fetch departments');
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to fetch users');
+      console.error('Error fetching departments:', error);
+      toast.error('Failed to fetch departments');
     } finally {
-      setLoadingUsers(false);
+      setLoadingDepartments(false);
     }
   };
 
-  // Fetch users on component mount
+  // Fetch employees function
+  const fetchEmployees = async (department = null) => {
+    setLoadingEmployees(true);
+    try {
+      const params = department && department !== 'All Departments' ? { department } : {};
+      const result = await employeeApi.getEmployees(params);
+      if (result.success) {
+        const employeeData = result.data.map(emp => ({
+          id: emp._id,
+          name: emp.name,
+          email: emp.email,
+          department: emp.department?.name || 'No Department',
+          role: emp.role
+        }));
+        setEmployees(employeeData);
+        setFilteredEmployees(employeeData);
+      } else {
+        toast.error(result.message || 'Failed to fetch employees');
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      toast.error('Failed to fetch employees');
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  // Fetch departments on component mount
   useEffect(() => {
-    fetchUsers();
+    fetchDepartments();
   }, []);
+
+  // Fetch employees when department changes
+  useEffect(() => {
+    if (formik.values.department && formik.values.department !== 'All Departments') {
+      fetchEmployees(formik.values.department);
+    } else if (formik.values.department === 'All Departments') {
+      fetchEmployees();
+    }
+  }, [formik.values.department]);
 
   const handleCancel = () => {
     navigate('/surveys');
@@ -178,46 +221,92 @@ const SurveyCreate = () => {
               </Grid>
 
               <Grid item xs={12}>
-                <Autocomplete
-                  multiple
-                  id="targetUsers"
-                  options={users}
-                  getOptionLabel={(option) => `${option.name} (${option.email}) - ${option.department}`}
-                  value={formik.values.targetUsers}
-                  onChange={(event, newValue) => {
-                    formik.setFieldValue('targetUsers', newValue);
-                  }}
-                  loading={loadingUsers}
-                  disabled={loadingUsers}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Chip
-                        label={`${option.name} - ${option.department}`}
-                        {...getTagProps({ index })}
-                        key={option.id}
-                      />
-                    ))
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Target Users"
-                      placeholder={loadingUsers ? "Loading users..." : "Select users for the survey"}
-                      error={formik.touched.targetUsers && Boolean(formik.errors.targetUsers)}
-                      helperText={formik.touched.targetUsers && formik.errors.targetUsers}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {loadingUsers ? <CircularProgress color="inherit" size={20} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
+                <FormControl 
+                  fullWidth
+                  error={formik.touched.department && Boolean(formik.errors.department)}
+                >
+                  <InputLabel id="department-label">Target Department</InputLabel>
+                  <Select
+                    labelId="department-label"
+                    id="department"
+                    name="department"
+                    value={formik.values.department}
+                    label="Target Department"
+                    onChange={(e) => {
+                      formik.setFieldValue('department', e.target.value);
+                      // Reset employees when department changes
+                      formik.setFieldValue('targetEmployees', []);
+                    }}
+                    onBlur={formik.handleBlur}
+                    disabled={loadingDepartments}
+                  >
+                    {loadingDepartments ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        Loading departments...
+                      </MenuItem>
+                    ) : (
+                      [
+                        <MenuItem key="all" value="All Departments">
+                          All Departments
+                        </MenuItem>,
+                        ...departments.map((dept) => (
+                          <MenuItem key={dept._id} value={dept.name}>
+                            {dept.name}
+                          </MenuItem>
+                        ))
+                      ]
+                    )}
+                  </Select>
+                  {formik.touched.department && formik.errors.department && (
+                    <FormHelperText>{formik.errors.department}</FormHelperText>
                   )}
-                />
+                </FormControl>
               </Grid>
+
+              {formik.values.department && (
+                <Grid item xs={12}>
+                  <Autocomplete
+                    multiple
+                    id="targetEmployees"
+                    options={filteredEmployees}
+                    getOptionLabel={(option) => `${option.name} (${option.email}) - ${option.department}`}
+                    value={formik.values.targetEmployees}
+                    onChange={(event, newValue) => {
+                      formik.setFieldValue('targetEmployees', newValue);
+                    }}
+                    loading={loadingEmployees}
+                    disabled={loadingEmployees}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => (
+                        <Chip
+                          label={`${option.name} - ${option.department}`}
+                          {...getTagProps({ index })}
+                          key={option.id}
+                        />
+                      ))
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Target Employees"
+                        placeholder={loadingEmployees ? "Loading employees..." : "Select employees for the survey"}
+                        error={formik.touched.targetEmployees && Boolean(formik.errors.targetEmployees)}
+                        helperText={formik.touched.targetEmployees && formik.errors.targetEmployees}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {loadingEmployees ? <CircularProgress color="inherit" size={20} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+              )}
             </Grid>
 
             <Divider sx={{ my: 3 }} />
