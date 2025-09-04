@@ -40,12 +40,9 @@ exports.createSurvey = async (req, res, next) => {
     // Add user to req.body
     req.body.createdBy = req.user.id;
     
-    // Calculate end date
+    // Set duration days (endDate will be calculated as virtual field)
     const publishDate = new Date(req.body.publishDate);
-    const endDate = new Date(publishDate);
     const durationDays = req.body.durationDays || req.body.noOfDays || 7;
-    endDate.setDate(endDate.getDate() + durationDays);
-    req.body.endDate = endDate;
     req.body.durationDays = durationDays;
     
     // Set consent deadline to publish date
