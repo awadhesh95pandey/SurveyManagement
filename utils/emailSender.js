@@ -9,18 +9,44 @@ const nodemailer = require('nodemailer');
  * @param {String} options.html - HTML content
  */
 const sendEmail = async (options) => {
+  // Check if email configuration is available
+  if (!process.env.EMAIL_SERVICE && !process.env.EMAIL_HOST) {
+    console.warn('Email configuration not found. Email functionality is disabled.');
+    console.warn('Please create a .env file with email configuration. See .env.example for reference.');
+    throw new Error('Email service not configured. Please check your environment variables.');
+  }
+
+  // Create transporter configuration
+  let transporterConfig;
+  
+  if (process.env.EMAIL_SERVICE) {
+    // Use predefined service (Gmail, Outlook, etc.)
+    transporterConfig = {
+      service: process.env.EMAIL_SERVICE,
+      auth: {
+        user: process.env.EMAIL_USERNAME,
+        pass: process.env.EMAIL_PASSWORD
+      }
+    };
+  } else if (process.env.EMAIL_HOST) {
+    // Use custom SMTP configuration
+    transporterConfig = {
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT || 587,
+      secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
+      auth: {
+        user: process.env.EMAIL_USERNAME,
+        pass: process.env.EMAIL_PASSWORD
+      }
+    };
+  }
+
   // Create a transporter
-  const transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE,
-    auth: {
-      user: process.env.EMAIL_USERNAME,
-      pass: process.env.EMAIL_PASSWORD
-    }
-  });
+  const transporter = nodemailer.createTransporter(transporterConfig);
 
   // Define email options
   const mailOptions = {
-    from: `${process.env.EMAIL_FROM}`,
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USERNAME,
     to: options.to,
     subject: options.subject,
     text: options.text || '',
@@ -164,4 +190,3 @@ module.exports = {
   sendManagerNotificationEmail,
   sendReporteeNotificationEmail
 };
-
