@@ -338,9 +338,8 @@ export const consentApi = {
 
   // Send consent emails
   sendConsentEmails: async (surveyId) => {
-    debugger
     try {
-      const response = await axios.post(`/api/surveys/${surveyId}/consent/send-emails`);
+      const response = await axios.post(`/api/surveys/${surveyId}/generate-consent`);
       return { success: true, data: response.data.data };
     } catch (error) {
       console.error(`Error sending consent emails for survey ${surveyId}:`, error);
