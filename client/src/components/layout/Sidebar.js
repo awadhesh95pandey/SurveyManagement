@@ -53,7 +53,7 @@ const Sidebar = ({ open, toggleDrawer }) => {
       text: 'Reports',
       icon: <BarChartIcon />,
       path: '/reports',
-      admin: true
+      admin: false
     },
     {
       text: 'Notifications',
@@ -130,4 +130,3 @@ const Sidebar = ({ open, toggleDrawer }) => {
 };
 
 export default Sidebar;
-

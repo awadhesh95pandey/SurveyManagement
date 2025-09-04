@@ -33,9 +33,13 @@ import AnonymousSurveyAttempt from './pages/responses/AnonymousSurveyAttempt';
 // Report Pages
 import SurveyReport from './pages/reports/SurveyReport';
 import UserReport from './pages/reports/UserReport';
+import ReportsIndex from './pages/reports/ReportsIndex';
 
 // Notification Pages
 import NotificationList from './pages/notifications/NotificationList';
+
+// Profile Pages
+import Profile from './pages/profile/Profile';
 
 // Auth Context and Protected Route
 import { useAuth } from './contexts/AuthContext';
@@ -185,6 +189,7 @@ function App() {
           <Route path="surveys/:surveyId/complete" element={<SurveyComplete />} />
 
           {/* Report Routes */}
+          <Route path="reports" element={<ReportsIndex />} />
           <Route
             path="reports/surveys/:surveyId"
             element={
@@ -197,6 +202,9 @@ function App() {
 
           {/* Notification Routes */}
           <Route path="notifications" element={<NotificationList />} />
+
+          {/* Profile Routes */}
+          <Route path="profile" element={<Profile />} />
         </Route>
 
         {/* 404 Route */}
