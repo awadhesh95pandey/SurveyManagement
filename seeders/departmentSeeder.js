@@ -107,8 +107,8 @@ const seedDepartments = async () => {
         // Now create the admin user with HR department
         adminUser = await User.create({
           name: 'System Administrator',
-          email: 'admin@company.com',
-          password: 'admin123', // This will be hashed by the User model
+          email: 'dotnetdev12@paisalo.in',
+          password: 'Awadhesh@123', // This will be hashed by the User model
           role: 'admin',
           department: hrDepartment._id,
           isActive: true

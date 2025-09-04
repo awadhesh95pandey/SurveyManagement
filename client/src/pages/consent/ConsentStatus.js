@@ -39,6 +39,7 @@ const ConsentStatus = () => {
   }, [surveyId]);
 
   const fetchSurveyAndConsent = async () => {
+    debugger
     setLoading(true);
     try {
       // Fetch survey details
@@ -230,9 +231,9 @@ const ConsentStatus = () => {
                 <TableBody>
                   {consentData.map((consent) => (
                     <TableRow key={consent._id} hover>
-                      <TableCell>{consent.user?.name || 'Unknown'}</TableCell>
-                      <TableCell>{consent.user?.email || 'Unknown'}</TableCell>
-                      <TableCell>{consent.user?.department || 'Unknown'}</TableCell>
+                      <TableCell>{consent.userId?.name || 'Unknown'}</TableCell>
+                      <TableCell>{consent.userId?.email || 'Unknown'}</TableCell>
+                      <TableCell>{consent.userId?.department || 'Unknown'}</TableCell>
                       <TableCell>{getConsentChip(consent.consentGiven)}</TableCell>
                       <TableCell>
                         {consent.consentTimestamp 
