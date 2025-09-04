@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Department = require('../models/Department');
 const User = require('../models/User');
 
@@ -80,41 +81,55 @@ const seedDepartments = async () => {
 
     // Find an admin user to set as creator
     let adminUser = await User.findOne({ role: 'admin' });
+    let isNewAdmin = false;
     
-    // If no admin user exists, create a default one
+    // If no admin user exists, we'll create one after creating HR department
     if (!adminUser) {
-      console.log('👤 No admin user found. Creating default admin...');
-      adminUser = await User.create({
-        name: 'System Administrator',
-        email: 'admin@company.com',
-        password: 'admin123', // This will be hashed by the User model
-        role: 'admin',
-        department: null, // Will be set after HR department is created
-        isActive: true
-      });
-      console.log('✅ Default admin user created');
+      console.log('👤 No admin user found. Will create after HR department...');
     }
 
-    // Create departments
+    // Create departments first
     const createdDepartments = [];
+    let hrDepartment = null;
+    
     for (const deptData of defaultDepartments) {
-      const department = await Department.create({
-        ...deptData,
-        createdBy: adminUser._id,
-        isActive: true
-      });
-      createdDepartments.push(department);
-      console.log(`✅ Created department: ${department.name} (${department.code})`);
-    }
-
-    // If we created a default admin and HR department exists, assign admin to HR
-    if (adminUser.email === 'admin@company.com') {
-      const hrDepartment = createdDepartments.find(dept => dept.code === 'HR');
-      if (hrDepartment) {
-        await User.findByIdAndUpdate(adminUser._id, { 
-          department: hrDepartment._id 
+      // For the first department (HR), create it without createdBy if no admin exists
+      if (!adminUser && deptData.code === 'HR') {
+        // Create HR department with a temporary createdBy that we'll update later
+        hrDepartment = await Department.create({
+          ...deptData,
+          createdBy: new mongoose.Types.ObjectId(), // Temporary ObjectId
+          isActive: true
         });
-        console.log('✅ Assigned admin user to HR department');
+        createdDepartments.push(hrDepartment);
+        console.log(`✅ Created department: ${hrDepartment.name} (${hrDepartment.code})`);
+        
+        // Now create the admin user with HR department
+        adminUser = await User.create({
+          name: 'System Administrator',
+          email: 'admin@company.com',
+          password: 'admin123', // This will be hashed by the User model
+          role: 'admin',
+          department: hrDepartment._id,
+          isActive: true
+        });
+        isNewAdmin = true;
+        console.log('✅ Default admin user created and assigned to HR');
+        
+        // Update HR department to have correct createdBy
+        await Department.findByIdAndUpdate(hrDepartment._id, {
+          createdBy: adminUser._id
+        });
+        console.log('✅ Updated HR department createdBy field');
+      } else {
+        // Create other departments normally
+        const department = await Department.create({
+          ...deptData,
+          createdBy: adminUser._id,
+          isActive: true
+        });
+        createdDepartments.push(department);
+        console.log(`✅ Created department: ${department.name} (${department.code})`);
       }
     }
 
