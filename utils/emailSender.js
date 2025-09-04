@@ -42,7 +42,7 @@ const sendEmail = async (options) => {
   }
 
   // Create a transporter
-  const transporter = nodemailer.createTransporter(transporterConfig);
+  const transporter = nodemailer.createTransport(transporterConfig);
 
   // Define email options
   const mailOptions = {
