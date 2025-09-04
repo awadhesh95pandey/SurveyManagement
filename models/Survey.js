@@ -22,9 +22,6 @@ const SurveySchema = new mongoose.Schema({
     min: [1, 'Duration must be at least 1 day'],
     max: [365, 'Duration cannot exceed 365 days']
   },
-  endDate: {
-    type: Date
-  },
   consentDeadline: {
     type: Date
   },
@@ -87,7 +84,8 @@ SurveySchema.pre('save', function(next) {
 // Virtual for end date
 SurveySchema.virtual('endDate').get(function() {
   const endDate = new Date(this.publishDate);
-  endDate.setDate(endDate.getDate() + this.noOfDays);
+  const days = this.durationDays || this.noOfDays || 7;
+  endDate.setDate(endDate.getDate() + days);
   return endDate;
 });
 
