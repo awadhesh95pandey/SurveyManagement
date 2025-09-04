@@ -628,3 +628,57 @@ exports.getConsentStatus = async (req, res, next) => {
     next(err);
   }
 };
+
+// @desc    Get all employees for survey targeting
+// @route   GET /api/employees
+// @access  Private (Admin only)
+exports.getEmployees = async (req, res, next) => {
+  try {
+    const { department } = req.query;
+    
+    let query = {
+      role: { $in: ['employee', 'manager'] },
+      isActive: true
+    };
+    
+    // Filter by department if specified
+    if (department && department !== 'All Departments') {
+      query.department = department;
+    }
+    
+    const employees = await User.find(query)
+      .select('_id name email department role')
+      .sort({ name: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: employees.length,
+      data: employees
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get all departments
+// @route   GET /api/departments
+// @access  Private (Admin only)
+exports.getDepartments = async (req, res, next) => {
+  try {
+    const departments = await User.distinct('department', {
+      role: { $in: ['employee', 'manager'] },
+      isActive: true
+    });
+    
+    // Add "All Departments" option
+    const departmentList = ['All Departments', ...departments.filter(dept => dept)];
+
+    res.status(200).json({
+      success: true,
+      count: departmentList.length,
+      data: departmentList
+    });
+  } catch (err) {
+    next(err);
+  }
+};

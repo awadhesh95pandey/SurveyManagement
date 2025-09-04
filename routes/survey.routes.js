@@ -10,7 +10,9 @@ const {
   updateSurveyStatus,
   generateConsentRecords,
   updateSurveyStatuses,
-  getConsentStatus
+  getConsentStatus,
+  getEmployees,
+  getDepartments
 } = require('../controllers/survey.controller');
 
 // Include other resource routers
@@ -59,4 +61,3 @@ router.route('/:id/consent/status')
   .get(protect, authorize('admin'), getConsentStatus);
 
 module.exports = router;
-

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -18,7 +18,7 @@ import {
   Chip
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { surveyApi } from '../../services/api';
+import { surveyApi, employeeApi, departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -26,30 +26,13 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
-// Mock data for departments and employees
-// In a real app, these would come from an API
-const departments = [
-  'Human Resources',
-  'Finance',
-  'Information Technology',
-  'Marketing',
-  'Operations',
-  'Sales',
-  'Research & Development',
-  'Customer Support',
-  'All Departments'
-];
-
-const employees = [
-  { id: '1', name: 'Mohit Raj Pandey', email: 'awadheshpandey9595@gmail.com', department: 'Human Resources' },
-  { id: '2', name: 'Jane Smith', email: 'jane.smith@example.com', department: 'Finance' },
-  { id: '3', name: 'Robert Johnson', email: 'robert.johnson@example.com', department: 'Information Technology' },
-  { id: '4', name: 'Emily Davis', email: 'emily.davis@example.com', department: 'Marketing' },
-  { id: '5', name: 'Michael Wilson', email: 'michael.wilson@example.com', department: 'Operations' }
-];
-
 const SurveyCreate = () => {
   const [loading, setLoading] = useState(false);
+  const [departments, setDepartments] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
   const navigate = useNavigate();
 
   // Form validation schema
@@ -111,10 +94,63 @@ const SurveyCreate = () => {
     }
   });
 
-  // Filter employees based on selected department
-  const filteredEmployees = formik.values.department === 'All Departments'
-    ? employees
-    : employees.filter(emp => emp.department === formik.values.department);
+  // Fetch departments function
+  const fetchDepartments = async () => {
+    setLoadingDepartments(true);
+    try {
+      const result = await departmentApi.getDepartments();
+      if (result.success) {
+        setDepartments(result.data);
+      } else {
+        toast.error(result.message || 'Failed to fetch departments');
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      toast.error('Failed to fetch departments');
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  // Fetch employees function
+  const fetchEmployees = async (department = null) => {
+    setLoadingEmployees(true);
+    try {
+      const params = department && department !== 'All Departments' ? { department } : {};
+      const result = await employeeApi.getEmployees(params);
+      if (result.success) {
+        const employeeData = result.data.map(emp => ({
+          id: emp._id,
+          name: emp.name,
+          email: emp.email,
+          department: emp.department
+        }));
+        setEmployees(employeeData);
+        setFilteredEmployees(employeeData);
+      } else {
+        toast.error(result.message || 'Failed to fetch employees');
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      toast.error('Failed to fetch employees');
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  // Fetch departments on component mount
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  // Fetch employees when department changes
+  useEffect(() => {
+    if (formik.values.department && formik.values.department !== 'All Departments') {
+      fetchEmployees(formik.values.department);
+    } else if (formik.values.department === 'All Departments') {
+      fetchEmployees();
+    }
+  }, [formik.values.department]);
 
   const handleCancel = () => {
     navigate('/surveys');
@@ -201,12 +237,20 @@ const SurveyCreate = () => {
                       formik.setFieldValue('employees', []);
                     }}
                     onBlur={formik.handleBlur}
+                    disabled={loadingDepartments}
                   >
-                    {departments.map((dept) => (
-                      <MenuItem key={dept} value={dept}>
-                        {dept}
+                    {loadingDepartments ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        Loading departments...
                       </MenuItem>
-                    ))}
+                    ) : (
+                      departments.map((dept) => (
+                        <MenuItem key={dept} value={dept}>
+                          {dept}
+                        </MenuItem>
+                      ))
+                    )}
                   </Select>
                   {formik.touched.department && formik.errors.department && (
                     <FormHelperText>{formik.errors.department}</FormHelperText>
@@ -225,6 +269,8 @@ const SurveyCreate = () => {
                     onChange={(event, newValue) => {
                       formik.setFieldValue('employees', newValue);
                     }}
+                    loading={loadingEmployees}
+                    disabled={loadingEmployees}
                     renderTags={(value, getTagProps) =>
                       value.map((option, index) => (
                         <Chip
@@ -238,9 +284,18 @@ const SurveyCreate = () => {
                       <TextField
                         {...params}
                         label="Target Employees"
-                        placeholder="Select employees"
+                        placeholder={loadingEmployees ? "Loading employees..." : "Select employees"}
                         error={formik.touched.employees && Boolean(formik.errors.employees)}
                         helperText={formik.touched.employees && formik.errors.employees}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {loadingEmployees ? <CircularProgress color="inherit" size={20} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
                       />
                     )}
                   />
