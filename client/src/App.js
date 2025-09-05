@@ -16,6 +16,7 @@ import SurveyList from './pages/surveys/SurveyList';
 import SurveyCreate from './pages/surveys/SurveyCreate';
 import SurveyEdit from './pages/surveys/SurveyEdit';
 import SurveyDetail from './pages/surveys/SurveyDetail';
+import TakeSurvey from './pages/survey/TakeSurvey';
 
 // Question Pages
 import QuestionList from './pages/questions/QuestionList';
@@ -155,6 +156,7 @@ function App() {
             }
           />
           <Route path="surveys/:id" element={<SurveyDetail />} />
+          <Route path="surveys/:id/take" element={<TakeSurvey />} />
 
           {/* Question Routes */}
           <Route

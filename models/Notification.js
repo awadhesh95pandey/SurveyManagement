@@ -9,12 +9,37 @@ const NotificationSchema = new mongoose.Schema({
   surveyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Survey',
-    required: true
+    required: false
   },
   type: {
     type: String,
-    enum: ['consent_request', 'survey_available', 'manager_notification', 'reportee_notification'],
+    enum: ['consent_request', 'survey_available', 'survey_invitation', 'manager_notification', 'reportee_notification', 'general'],
     required: true
+  },
+  title: {
+    type: String,
+    required: true
+  },
+  message: {
+    type: String,
+    required: true
+  },
+  data: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'urgent'],
+    default: 'medium'
+  },
+  read: {
+    type: Boolean,
+    default: false
+  },
+  readAt: {
+    type: Date,
+    default: null
   },
   sent: {
     type: Boolean,
@@ -34,6 +59,8 @@ const NotificationSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   }
+}, {
+  timestamps: true
 });
 
 // Create indexes for common queries
@@ -41,4 +68,3 @@ NotificationSchema.index({ userId: 1, surveyId: 1, type: 1 });
 NotificationSchema.index({ surveyId: 1, type: 1 });
 
 module.exports = mongoose.model('Notification', NotificationSchema);
-
