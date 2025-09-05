@@ -26,6 +26,12 @@ const SurveyAttemptSchema = new mongoose.Schema({
   anonymous: {
     type: Boolean,
     default: false
+  },
+  employeeEmail: {
+    type: String,
+    default: null,
+    lowercase: true,
+    trim: true
   }
 });
 
@@ -35,4 +41,3 @@ SurveyAttemptSchema.index({ userId: 1, surveyId: 1 });
 SurveyAttemptSchema.index({ surveyId: 1, completed: 1 });
 
 module.exports = mongoose.model('SurveyAttempt', SurveyAttemptSchema);
-

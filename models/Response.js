@@ -32,6 +32,13 @@ const ResponseSchema = new mongoose.Schema({
     ref: 'SurveyToken',
     default: null
   },
+  // For employee tracking in public surveys
+  employeeEmail: {
+    type: String,
+    default: null,
+    lowercase: true,
+    trim: true
+  },
   // Metadata
   submittedAt: {
     type: Date,
@@ -77,6 +84,12 @@ ResponseSchema.index({ surveyId: 1, questionId: 1, userId: 1 }, {
 ResponseSchema.index({ surveyId: 1, surveyTokenId: 1, questionId: 1 }, { 
   unique: true,
   partialFilterExpression: { surveyTokenId: { $ne: null } }
+});
+
+// Index to prevent duplicate responses from same employee email
+ResponseSchema.index({ surveyId: 1, employeeEmail: 1, questionId: 1 }, { 
+  unique: true,
+  partialFilterExpression: { employeeEmail: { $ne: null } }
 });
 
 // Method to check if response is anonymous
