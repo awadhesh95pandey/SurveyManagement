@@ -59,11 +59,29 @@ const AnonymousSurveyAttempt = () => {
           setError('This survey has expired and is no longer accepting responses.');
         }
       } else {
-        setError(result.message || 'Survey not found or invalid token');
+        // Handle specific token validation errors
+        if (result.status === 'used') {
+          setError('This survey has already been completed. Each employee can only submit one response per survey.');
+        } else if (result.status === 'expired') {
+          setError('This survey link has expired. Please contact your administrator for a new link.');
+        } else {
+          setError(result.message || 'Survey not found or invalid token');
+        }
       }
     } catch (error) {
       console.error('Error fetching survey:', error);
-      setError('An error occurred while loading the survey');
+      if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        if (errorData.status === 'used') {
+          setError('This survey has already been completed. Each employee can only submit one response per survey.');
+        } else if (errorData.status === 'expired') {
+          setError('This survey link has expired. Please contact your administrator for a new link.');
+        } else {
+          setError(errorData.message || 'Survey not available');
+        }
+      } else {
+        setError('An error occurred while loading the survey');
+      }
     } finally {
       setLoading(false);
     }
@@ -98,21 +116,19 @@ const AnonymousSurveyAttempt = () => {
 
     setSubmitting(true);
     try {
-      // Format responses for API
+      // Format responses for token-based API
       const formattedResponses = questions.map(question => ({
         questionId: question._id,
-        selectedOption: responses[question._id]
+        answer: responses[question._id]
       }));
 
-      const result = await responseApi.submitAnonymousResponse({
-        surveyId: survey._id,
-        token: token,
+      const result = await responseApi.submitTokenBasedResponse(token, {
         responses: formattedResponses
       });
 
       if (result.success) {
         setSurveyCompleted(true);
-        toast.success('Survey submitted successfully!');
+        toast.success('Survey submitted successfully! Thank you for your participation.');
       } else {
         toast.error(result.message || 'Failed to submit survey');
       }
@@ -307,4 +323,3 @@ const AnonymousSurveyAttempt = () => {
 };
 
 export default AnonymousSurveyAttempt;
-

@@ -451,7 +451,7 @@ export const responseApi = {
     }
   },
 
-  // Submit anonymous response
+  // Submit anonymous response (for surveys with anonymous tokens)
   submitAnonymousResponse: async (responseData) => {
     try {
       const response = await axios.post('/api/responses/anonymous', responseData);
@@ -461,6 +461,20 @@ export const responseApi = {
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to submit anonymous response' 
+      };
+    }
+  },
+
+  // Submit token-based response (for personalized survey links)
+  submitTokenBasedResponse: async (token, responseData) => {
+    try {
+      const response = await axios.post(`/api/surveys/token/${token}/responses`, responseData);
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('Error submitting token-based response:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to submit response' 
       };
     }
   }
