@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const SurveyToken = require('../models/SurveyToken');
 const { sendConsentRequestEmail, sendSurveyInvitationEmail } = require('../utils/emailSender');
+const crypto = require('crypto');
 
 // Helper function to get target users for a survey
 const getTargetUsers = async (survey) => {
@@ -813,10 +814,39 @@ exports.sendSurveyLinksToDepartments = async (req, res, next) => {
     // Create notifications and send emails for each target employee
     const notifications = [];
     const emailResults = [];
-    const surveyLink = `${process.env.CLIENT_URL}/surveys/${survey._id}/take`;
+    const tokens = [];
 
     for (const employee of targetEmployees) {
       try {
+        // Generate unique token for this employee
+        const tokenId = crypto.randomBytes(16).toString('hex');
+        
+        // Check if token already exists for this employee and survey
+        let existingToken = await SurveyToken.findOne({
+          surveyId: survey._id,
+          employeeEmail: employee.email.toLowerCase().trim()
+        });
+        
+        let surveyToken;
+        if (existingToken) {
+          // Use existing token
+          surveyToken = existingToken;
+        } else {
+          // Create new token
+          surveyToken = await SurveyToken.create({
+            surveyId: survey._id,
+            tokenId: tokenId,
+            employeeEmail: employee.email.toLowerCase().trim(),
+            employeeName: employee.name || '',
+            expiresAt: survey.endDate || null
+          });
+        }
+        
+        tokens.push(surveyToken);
+        
+        // Create survey link with token
+        const surveyLink = `${process.env.CLIENT_URL}/surveys/${survey._id}/${surveyToken.tokenId}/take`;
+
         // Create notification
         const notification = await Notification.create({
           userId: employee._id,
@@ -827,6 +857,7 @@ exports.sendSurveyLinksToDepartments = async (req, res, next) => {
             surveyId: survey._id,
             surveyName: survey.name,
             surveyLink: surveyLink,
+            tokenId: surveyToken.tokenId,
             dueDate: survey.endDate
           },
           priority: 'medium'
@@ -914,19 +945,31 @@ exports.sendSurveyLinksToDepartments = async (req, res, next) => {
         targetEmployees: targetEmployees.length,
         departments: departmentIds.length,
         notifications: notifications.length,
+        tokensGenerated: tokens.length,
         emailStats,
         employeeDetails: targetEmployees.map(emp => {
           const emailResult = emailResults.find(r => r.employeeId.toString() === emp._id.toString());
+          const token = tokens.find(t => t.employeeEmail === emp.email.toLowerCase().trim());
           return {
             id: emp._id,
             name: emp.name,
             email: emp.email,
             department: emp.department?.name || 'No Department',
+            tokenId: token?.tokenId || null,
+            surveyLink: token ? `${process.env.CLIENT_URL}/surveys/${survey._id}/${token.tokenId}/take` : null,
             emailStatus: emailResult?.status || 'unknown',
             emailSentAt: emailResult?.sentAt || null,
             emailError: emailResult?.error || null
           };
         }),
+        tokens: tokens.map(token => ({
+          tokenId: token.tokenId,
+          employeeEmail: token.employeeEmail,
+          employeeName: token.employeeName,
+          surveyLink: `${process.env.CLIENT_URL}/surveys/${survey._id}/${token.tokenId}/take`,
+          isUsed: token.isUsed,
+          createdAt: token.createdAt
+        })),
         emailResults: emailResults
       }
     });
