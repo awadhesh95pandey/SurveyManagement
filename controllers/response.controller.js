@@ -1,9 +1,11 @@
+const mongoose = require('mongoose');
 const Response = require('../models/Response');
 const SurveyAttempt = require('../models/SurveyAttempt');
 const Survey = require('../models/Survey');
 const Question = require('../models/Question');
 const Consent = require('../models/Consent');
 const SurveyToken = require('../models/SurveyToken');
+const SurveySubmission = require('../models/SurveySubmission');
 
 // @desc    Start a survey attempt
 // @route   POST /api/surveys/:surveyId/attempt
@@ -573,6 +575,20 @@ exports.submitTokenBasedResponse = async (req, res, next) => {
       });
     }
     
+    // Check if employee has already submitted this survey (double-check)
+    const existingSubmission = await SurveySubmission.hasEmployeeSubmitted(
+      survey._id, 
+      surveyToken.employeeId._id
+    );
+    
+    if (existingSubmission) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already completed this survey',
+        status: 'already_submitted'
+      });
+    }
+    
     const survey = surveyToken.surveyId;
     
     // Check survey timing
@@ -629,28 +645,55 @@ exports.submitTokenBasedResponse = async (req, res, next) => {
       }
     }
     
-    // Save all responses
-    const savedResponses = [];
-    for (const responseData of responses) {
-      const question = questionMap[responseData.questionId];
-      
-      // Create response linked to the survey token
-      const response = await Response.create({
-        surveyId: survey._id,
-        questionId: responseData.questionId,
-        selectedOption: responseData.answer,
-        userId: surveyToken.employeeId._id, // Link to employee
-        surveyTokenId: surveyToken._id, // Link to token
-        hasConsent: true, // Token-based responses have implicit consent
-        ipAddress: req.ip || req.connection.remoteAddress,
-        userAgent: req.get('User-Agent')
-      });
-      
-      savedResponses.push(response);
-    }
+    // Use transaction to ensure data consistency
+    const session = await mongoose.startSession();
+    let savedResponses = [];
+    let submissionRecord = null;
     
-    // Mark token as used
-    await surveyToken.markAsUsed(savedResponses[0]._id);
+    try {
+      await session.withTransaction(async () => {
+        // Save all responses
+        for (const responseData of responses) {
+          const question = questionMap[responseData.questionId];
+          
+          // Create response linked to the survey token
+          const response = await Response.create([{
+            surveyId: survey._id,
+            questionId: responseData.questionId,
+            selectedOption: responseData.answer,
+            userId: surveyToken.employeeId._id, // Link to employee
+            surveyTokenId: surveyToken._id, // Link to token
+            hasConsent: true, // Token-based responses have implicit consent
+            ipAddress: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('User-Agent')
+          }], { session });
+          
+          savedResponses.push(response[0]);
+        }
+        
+        // Create submission record to track completion
+        submissionRecord = await SurveySubmission.create([{
+          surveyId: survey._id,
+          employeeId: surveyToken.employeeId._id,
+          surveyTokenId: surveyToken._id,
+          totalQuestions: questions.length,
+          answeredQuestions: responses.length,
+          isComplete: responses.length === questions.length,
+          submittedAt: new Date(),
+          ipAddress: req.ip || req.connection.remoteAddress,
+          userAgent: req.get('User-Agent'),
+          responseIds: savedResponses.map(r => r._id)
+        }], { session });
+        
+        // Mark token as used
+        await surveyToken.markAsUsed(savedResponses[0]._id);
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      await session.endSession();
+    }
     
     res.status(201).json({
       success: true,

@@ -16,7 +16,8 @@ const {
   sendSurveyLinksToDepartments,
   generateSurveyTokens,
   sendSurveyInvitations,
-  getSurveyByToken
+  getSurveyByToken,
+  getSurveySubmissionStats
 } = require('../controllers/survey.controller');
 
 // Include other resource routers
@@ -74,6 +75,9 @@ router.route('/:id/generate-tokens')
 
 router.route('/:id/send-invitations')
   .post(protect, authorize('admin'), sendSurveyInvitations);
+
+router.route('/:id/submission-stats')
+  .get(protect, authorize('admin'), getSurveySubmissionStats);
 
 // Public route for token-based survey access
 router.route('/token/:token')

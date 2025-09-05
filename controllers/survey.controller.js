@@ -4,6 +4,7 @@ const Consent = require('../models/Consent');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const SurveyToken = require('../models/SurveyToken');
+const SurveySubmission = require('../models/SurveySubmission');
 const { sendConsentRequestEmail, sendSurveyInvitationEmail } = require('../utils/emailSender');
 
 // Helper function to get target users for a survey
@@ -1161,6 +1162,20 @@ exports.getSurveyByToken = async (req, res, next) => {
       });
     }
     
+    // Double-check if employee has already submitted this survey
+    const existingSubmission = await SurveySubmission.hasEmployeeSubmitted(
+      survey._id, 
+      surveyToken.employeeId._id
+    );
+    
+    if (existingSubmission) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already completed this survey',
+        status: 'already_submitted'
+      });
+    }
+    
     const survey = surveyToken.surveyId;
     
     // Check survey timing
@@ -1201,6 +1216,65 @@ exports.getSurveyByToken = async (req, res, next) => {
             department: surveyToken.employeeId.department
           }
         }
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get survey submission statistics
+// @route   GET /api/surveys/:id/submission-stats
+// @access  Private (Admin only)
+exports.getSurveySubmissionStats = async (req, res, next) => {
+  try {
+    const survey = await Survey.findById(req.params.id);
+    
+    if (!survey) {
+      return res.status(404).json({
+        success: false,
+        message: `Survey not found with id of ${req.params.id}`
+      });
+    }
+    
+    // Get submission statistics
+    const submissionStats = await SurveySubmission.getSurveySubmissionStats(survey._id);
+    
+    // Get token statistics
+    const tokenStats = await SurveyToken.getSurveyTokenStats(survey._id);
+    
+    // Get detailed submissions
+    const submissions = await SurveySubmission.find({ surveyId: survey._id })
+      .populate('employeeId', 'name email department')
+      .populate('surveyTokenId', 'token createdAt expiresAt')
+      .sort({ submittedAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        surveyId: survey._id,
+        surveyName: survey.name,
+        submissionStats,
+        tokenStats,
+        submissions: submissions.map(sub => ({
+          id: sub._id,
+          employee: {
+            id: sub.employeeId._id,
+            name: sub.employeeId.name,
+            email: sub.employeeId.email,
+            department: sub.employeeId.department
+          },
+          totalQuestions: sub.totalQuestions,
+          answeredQuestions: sub.answeredQuestions,
+          completionPercentage: sub.completionPercentage,
+          isComplete: sub.isComplete,
+          submittedAt: sub.submittedAt,
+          token: {
+            id: sub.surveyTokenId._id,
+            createdAt: sub.surveyTokenId.createdAt,
+            expiresAt: sub.surveyTokenId.expiresAt
+          }
+        }))
       }
     });
   } catch (err) {
