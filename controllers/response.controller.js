@@ -7,9 +7,11 @@ const SurveyToken = require('../models/SurveyToken');
 
 // @desc    Start a survey attempt
 // @route   POST /api/surveys/:surveyId/attempt
-// @access  Private
+// @access  Private/Public
 exports.startSurveyAttempt = async (req, res, next) => {
   try {
+    const { employeeEmail } = req.body; // For public access, require employee email
+    
     const survey = await Survey.findById(req.params.surveyId);
     
     if (!survey) {
@@ -30,6 +32,30 @@ exports.startSurveyAttempt = async (req, res, next) => {
     // Handle both authenticated and public access
     const userId = req.user ? req.user.id : null;
     let isAnonymous = true;
+    
+    // For public access, require employee email to enforce single response per employee
+    if (!userId && !employeeEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee email is required for survey participation'
+      });
+    }
+    
+    // Check for existing responses from this employee (for public access)
+    if (!userId && employeeEmail) {
+      const existingResponse = await Response.findOne({
+        surveyId: req.params.surveyId,
+        employeeEmail: employeeEmail.toLowerCase().trim()
+      });
+      
+      if (existingResponse) {
+        return res.status(400).json({
+          success: false,
+          message: 'You have already completed this survey. Each employee can only submit one response.',
+          status: 'already_completed'
+        });
+      }
+    }
     
     if (userId) {
       // Check if user has already completed the survey (only for authenticated users)
@@ -63,7 +89,8 @@ exports.startSurveyAttempt = async (req, res, next) => {
       userId: isAnonymous ? null : userId,
       startedAt: Date.now(),
       completed: false,
-      anonymous: isAnonymous
+      anonymous: isAnonymous,
+      employeeEmail: employeeEmail ? employeeEmail.toLowerCase().trim() : null
     });
     
     // Get questions for the survey
@@ -507,7 +534,8 @@ const handleBulkResponseSubmission = async (req, res, next) => {
           selectedOption: responseData.answer,
           userId: attempt.userId,
           attemptId: attemptId,
-          anonymous: attempt.anonymous
+          anonymous: attempt.anonymous,
+          employeeEmail: attempt.employeeEmail
         });
         savedResponses.push(response);
       }
