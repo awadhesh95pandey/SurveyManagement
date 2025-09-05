@@ -44,6 +44,7 @@ const TakeSurvey = () => {
   }, [id]);
 
   const fetchSurveyData = async () => {
+    debugger;
     try {
       setLoading(true);
       
@@ -94,7 +95,10 @@ const TakeSurvey = () => {
       
       if (attemptResponse.ok) {
         const attemptData = await attemptResponse.json();
-        setAttemptId(attemptData.data.attemptId);
+        setAttemptId(attemptData.data.attempt._id);
+      }
+      else{
+        console.error('Survey is not active');
       }
       
     } catch (err) {
@@ -213,112 +217,65 @@ const TakeSurvey = () => {
     }
   };
 
-  const renderQuestion = (question) => {
-    const response = responses[question._id];
+const renderQuestion = (question) => {
+  const response = responses[question._id] || [];
 
-    // Handle undefined question text
-    const questionText = question.text || question.question || 'Question text not available';
+  const questionText = question.questionText || 'Question text not available';
 
-    switch (question.type) {
-      case 'multiple_choice':
-        if (question.allowMultiple) {
-          return (
-            <FormControl component="fieldset" fullWidth>
-              <FormLabel component="legend" sx={{ mb: 2, fontWeight: 'bold' }}>
-                {questionText}
-                {question.required && <span style={{ color: 'red' }}> *</span>}
-              </FormLabel>
-              <FormGroup>
-                {(question.options || []).map((option, index) => (
-                  <FormControlLabel
-                    key={index}
-                    control={
-                      <Checkbox
-                        checked={response.includes(option)}
-                        onChange={(e) => handleResponseChange(question._id, option, question.type)}
-                      />
-                    }
-                    label={option || `Option ${index + 1}`}
-                  />
-                ))}
-              </FormGroup>
-            </FormControl>
-          );
-        } else {
-          return (
-            <FormControl component="fieldset" fullWidth>
-              <FormLabel component="legend" sx={{ mb: 2, fontWeight: 'bold' }}>
-                {questionText}
-                {question.required && <span style={{ color: 'red' }}> *</span>}
-              </FormLabel>
-              <RadioGroup
-                value={response}
-                onChange={(e) => handleResponseChange(question._id, e.target.value, question.type)}
-              >
-                {(question.options || []).map((option, index) => (
-                  <FormControlLabel
-                    key={index}
-                    value={option}
-                    control={<Radio />}
-                    label={option || `Option ${index + 1}`}
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
-          );
-        }
-
-      case 'text':
-        return (
-          <FormControl fullWidth>
-            <TextField
-              label={questionText + (question.required ? ' *' : '')}
-              multiline
-              rows={4}
-              value={response}
-              onChange={(e) => handleResponseChange(question._id, e.target.value, question.type)}
-              variant="outlined"
-              fullWidth
-            />
-          </FormControl>
-        );
-
-      case 'rating':
-        return (
-          <FormControl component="fieldset" fullWidth>
-            <FormLabel component="legend" sx={{ mb: 2, fontWeight: 'bold' }}>
-              {questionText}
-              {question.required && <span style={{ color: 'red' }}> *</span>}
-            </FormLabel>
-            <RadioGroup
-              row
-              value={response}
-              onChange={(e) => handleResponseChange(question._id, e.target.value, question.type)}
-            >
-              {[1, 2, 3, 4, 5].map((rating) => (
-                <FormControlLabel
-                  key={rating}
-                  value={rating.toString()}
-                  control={<Radio />}
-                  label={rating.toString()}
+  if (question.allowMultiple) {
+    // ✅ Multiple-choice (checkbox)
+    return (
+      <FormControl component="fieldset" fullWidth>
+        <FormLabel component="legend" sx={{ mb: 2, fontWeight: 'bold' }}>
+          {questionText}
+          {question.required && <span style={{ color: 'red' }}> *</span>}
+        </FormLabel>
+        <FormGroup>
+          {(question.options || []).map((option, index) => (
+            <FormControlLabel
+              key={index}
+              control={
+                <Checkbox
+                  checked={response.includes(option)}
+                  onChange={() =>
+                    handleResponseChange(question._id, option, 'multiple_choice')
+                  }
                 />
-              ))}
-            </RadioGroup>
-          </FormControl>
-        );
+              }
+              label={option || `Option ${index + 1}`}
+            />
+          ))}
+        </FormGroup>
+      </FormControl>
+    );
+  } else {
+    // ✅ Single-choice (radio)
+    return (
+      <FormControl component="fieldset" fullWidth>
+        <FormLabel component="legend" sx={{ mb: 2, fontWeight: 'bold' }}>
+          {questionText}
+          {question.required && <span style={{ color: 'red' }}> *</span>}
+        </FormLabel>
+        <RadioGroup
+          value={response}
+          onChange={(e) =>
+            handleResponseChange(question._id, e.target.value, 'multiple_choice')
+          }
+        >
+          {(question.options || []).map((option, index) => (
+            <FormControlLabel
+              key={index}
+              value={option}
+              control={<Radio />}
+              label={option || `Option ${index + 1}`}
+            />
+          ))}
+        </RadioGroup>
+      </FormControl>
+    );
+  }
+};
 
-      default:
-        return (
-          <TextField
-            label={questionText + (question.required ? ' *' : '')}
-            value={response}
-            onChange={(e) => handleResponseChange(question._id, e.target.value, question.type)}
-            variant="outlined"
-            fullWidth
-          />
-        );
-    }
-  };
 
   if (loading) {
     return (

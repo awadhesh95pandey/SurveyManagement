@@ -552,7 +552,7 @@ exports.generateConsentRecords = async (req, res, next) => {
         consentRecords.push(consentRecord);
         
         // If notification record doesn't exist, create it
-        if (!notificationRecord) {
+        if (notificationRecord != null) {
           notificationRecord = await Notification.create({
             userId: user._id,
             surveyId: survey._id,

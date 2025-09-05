@@ -71,6 +71,7 @@ const ConsentStatus = () => {
   };
 
   const handleSendConsentEmails = async () => {
+    debugger
     setSendingEmails(true);
     try {
       const result = await consentApi.sendConsentEmails(surveyId);
