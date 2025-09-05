@@ -13,7 +13,10 @@ const {
   getConsentStatus,
   getEmployees,
   getDepartments,
-  sendSurveyLinksToDepartments
+  sendSurveyLinksToDepartments,
+  generateSurveyTokens,
+  sendSurveyInvitations,
+  getSurveyByToken
 } = require('../controllers/survey.controller');
 
 // Include other resource routers
@@ -64,6 +67,17 @@ router.route('/:id/send-to-departments')
 // Consent status for a survey (admin only)
 router.route('/:id/consent/status')
   .get(protect, authorize('admin'), getConsentStatus);
+
+// Token-based survey routes
+router.route('/:id/generate-tokens')
+  .post(protect, authorize('admin'), generateSurveyTokens);
+
+router.route('/:id/send-invitations')
+  .post(protect, authorize('admin'), sendSurveyInvitations);
+
+// Public route for token-based survey access
+router.route('/token/:token')
+  .get(getSurveyByToken);
 
 // Public route for taking surveys (no authentication required)
 router.route('/:id/take')

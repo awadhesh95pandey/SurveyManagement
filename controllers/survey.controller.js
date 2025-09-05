@@ -3,6 +3,7 @@ const Question = require('../models/Question');
 const Consent = require('../models/Consent');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const SurveyToken = require('../models/SurveyToken');
 const { sendConsentRequestEmail, sendSurveyInvitationEmail } = require('../utils/emailSender');
 
 // Helper function to get target users for a survey
@@ -927,6 +928,279 @@ exports.sendSurveyLinksToDepartments = async (req, res, next) => {
           };
         }),
         emailResults: emailResults
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Generate survey tokens for target employees
+// @route   POST /api/surveys/:id/generate-tokens
+// @access  Private (Admin only)
+exports.generateSurveyTokens = async (req, res, next) => {
+  try {
+    const { expirationDays = 30 } = req.body;
+    
+    const survey = await Survey.findById(req.params.id);
+    
+    if (!survey) {
+      return res.status(404).json({
+        success: false,
+        message: `Survey not found with id of ${req.params.id}`
+      });
+    }
+    
+    // Make sure user is survey creator or admin
+    if (survey.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        message: `User ${req.user.id} is not authorized to generate tokens for this survey`
+      });
+    }
+    
+    // Get target users
+    const targetUsers = await getTargetUsers(survey);
+    
+    if (targetUsers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No target employees found for this survey'
+      });
+    }
+    
+    // Generate tokens for all target employees
+    const employeeIds = targetUsers.map(user => user._id);
+    const tokens = await SurveyToken.generateTokensForSurvey(
+      survey._id, 
+      employeeIds, 
+      expirationDays
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: `Generated ${tokens.length} survey tokens`,
+      data: {
+        surveyId: survey._id,
+        surveyName: survey.name,
+        tokensGenerated: tokens.length,
+        targetEmployees: targetUsers.length,
+        expirationDays,
+        tokens: tokens.map(token => ({
+          id: token._id,
+          employeeId: token.employeeId,
+          token: token.token,
+          status: token.status,
+          expiresAt: token.expiresAt,
+          createdAt: token.createdAt
+        }))
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Send survey invitation emails with unique tokens
+// @route   POST /api/surveys/:id/send-invitations
+// @access  Private (Admin only)
+exports.sendSurveyInvitations = async (req, res, next) => {
+  try {
+    const survey = await Survey.findById(req.params.id);
+    
+    if (!survey) {
+      return res.status(404).json({
+        success: false,
+        message: `Survey not found with id of ${req.params.id}`
+      });
+    }
+    
+    // Make sure user is survey creator or admin
+    if (survey.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        message: `User ${req.user.id} is not authorized to send invitations for this survey`
+      });
+    }
+    
+    // Get all active tokens for this survey
+    const tokens = await SurveyToken.find({
+      surveyId: survey._id,
+      status: 'active'
+    }).populate('employeeId', 'name email department');
+    
+    if (tokens.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active tokens found. Please generate tokens first.'
+      });
+    }
+    
+    const emailResults = {
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      errors: []
+    };
+    
+    // Send personalized survey links to each employee
+    for (const token of tokens) {
+      try {
+        // Skip if email already sent
+        if (token.emailSent) {
+          emailResults.skipped++;
+          continue;
+        }
+        
+        const employee = token.employeeId;
+        const surveyLink = `${process.env.CLIENT_URL}/surveys/token/${token.token}/take`;
+        
+        // Create notification
+        await Notification.create({
+          userId: employee._id,
+          surveyId: survey._id,
+          type: 'survey_invitation',
+          title: `Survey Invitation: ${survey.name}`,
+          message: `You have been invited to participate in "${survey.name}". This is your personal survey link.`,
+          data: {
+            surveyId: survey._id,
+            surveyName: survey.name,
+            surveyLink: surveyLink,
+            tokenId: token._id,
+            expiresAt: token.expiresAt
+          },
+          priority: 'high'
+        });
+        
+        // Send personalized email
+        await sendSurveyInvitationEmail({
+          to: employee.email,
+          employeeName: employee.name,
+          surveyName: survey.name,
+          surveyDescription: survey.description || 'Please participate in this important survey.',
+          surveyLink: surveyLink,
+          dueDate: token.expiresAt,
+          departmentName: employee.department,
+          isPersonalized: true,
+          tokenExpiry: token.expiresAt
+        });
+        
+        // Mark token email as sent
+        await token.markEmailSent();
+        
+        emailResults.sent++;
+        
+      } catch (emailError) {
+        console.error(`Failed to send survey invitation to ${token.employeeId.email}:`, emailError);
+        emailResults.failed++;
+        emailResults.errors.push({
+          employeeId: token.employeeId._id,
+          email: token.employeeId.email,
+          error: emailError.message
+        });
+      }
+    }
+    
+    // Update survey email sent flag
+    await Survey.findByIdAndUpdate(survey._id, {
+      surveyEmailSent: true,
+      updatedAt: Date.now()
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: `Survey invitations sent: ${emailResults.sent} successful, ${emailResults.failed} failed, ${emailResults.skipped} skipped`,
+      data: {
+        surveyId: survey._id,
+        surveyName: survey.name,
+        emailResults,
+        totalTokens: tokens.length
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get survey by token (public access)
+// @route   GET /api/surveys/token/:token
+// @access  Public
+exports.getSurveyByToken = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    
+    // Find the token
+    const surveyToken = await SurveyToken.findOne({ token })
+      .populate('surveyId')
+      .populate('employeeId', 'name email department');
+    
+    if (!surveyToken) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid survey token'
+      });
+    }
+    
+    // Check if token is expired
+    if (surveyToken.isExpired) {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey token has expired',
+        status: 'expired',
+        expiredAt: surveyToken.expiresAt
+      });
+    }
+    
+    // Check if token is already used
+    if (surveyToken.status === 'used') {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey has already been completed',
+        status: 'used',
+        usedAt: surveyToken.usedAt
+      });
+    }
+    
+    const survey = surveyToken.surveyId;
+    
+    // Check survey timing
+    const now = new Date();
+    const publishDate = new Date(survey.publishDate);
+    const endDate = survey.endDate;
+    
+    if (now < publishDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey has not started yet',
+        status: 'upcoming',
+        publishDate: publishDate
+      });
+    } else if (now > endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey has ended',
+        status: 'closed',
+        endDate: endDate
+      });
+    }
+    
+    // Track token access
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
+    await surveyToken.trackAccess(ipAddress, userAgent);
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        survey,
+        token: {
+          id: surveyToken._id,
+          expiresAt: surveyToken.expiresAt,
+          employee: {
+            name: surveyToken.employeeId.name,
+            department: surveyToken.employeeId.department
+          }
+        }
       }
     });
   } catch (err) {
