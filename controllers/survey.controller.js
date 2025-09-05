@@ -275,6 +275,31 @@ exports.getSurvey = async (req, res, next) => {
       });
     }
     
+    // For public access (survey taking), check if survey is active
+    if (req.route.path === '/:id/take') {
+      const now = new Date();
+      const publishDate = new Date(survey.publishDate);
+      const endDate = survey.endDate;
+      
+      if (now < publishDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Survey has not started yet',
+          status: 'upcoming',
+          publishDate: publishDate
+        });
+      } else if (now > endDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Survey has ended',
+          status: 'closed',
+          endDate: endDate
+        });
+      }
+      
+      // Survey is active, allow access
+    }
+    
     res.status(200).json({
       success: true,
       data: survey
