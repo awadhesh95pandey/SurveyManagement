@@ -124,6 +124,7 @@ function App() {
         
         {/* Public Survey Routes - No authentication required */}
         <Route path="/surveys/:id/take" element={<TakeSurvey />} />
+        <Route path="/surveys/:id/:tokenId/take" element={<TakeSurvey />} />
         <Route path="/survey/:token" element={<AnonymousSurveyAttempt />} />
         <Route path="/surveys/token/:token/take" element={<AnonymousSurveyAttempt />} />
 

@@ -5,7 +5,99 @@ const Question = require('../models/Question');
 const Consent = require('../models/Consent');
 const SurveyToken = require('../models/SurveyToken');
 
-// @desc    Start a survey attempt
+// @desc    Start a survey attempt with token
+// @route   POST /api/surveys/:surveyId/:tokenId/attempt
+// @access  Public
+exports.startSurveyAttemptWithToken = async (req, res, next) => {
+  try {
+    const { surveyId, tokenId } = req.params;
+    
+    // Validate the survey token
+    const tokenValidation = await SurveyToken.validateToken(surveyId, tokenId);
+    
+    if (!tokenValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: tokenValidation.message,
+        status: 'invalid_token'
+      });
+    }
+    
+    const token = tokenValidation.token;
+    
+    // Check if this token has already been used to submit responses
+    const existingResponse = await Response.findOne({
+      surveyId: surveyId,
+      surveyTokenId: tokenId
+    });
+    
+    if (existingResponse) {
+      return res.status(400).json({
+        success: false,
+        message: 'This survey link has already been used to submit a response.',
+        status: 'already_completed'
+      });
+    }
+    
+    // Get survey details
+    const survey = await Survey.findById(surveyId);
+    if (!survey) {
+      return res.status(404).json({
+        success: false,
+        message: 'Survey not found'
+      });
+    }
+    
+    if (survey.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey is not active'
+      });
+    }
+    
+    // Create survey attempt
+    const attempt = await SurveyAttempt.create({
+      surveyId: surveyId,
+      userId: null, // Public access
+      startedAt: Date.now(),
+      completed: false,
+      anonymous: true,
+      surveyTokenId: tokenId
+    });
+    
+    // Get questions for the survey
+    const questions = await Question.find({ surveyId: surveyId })
+      .select('questionText questionType options required')
+      .sort({ order: 1 });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Survey attempt started successfully',
+      data: {
+        attemptId: attempt._id,
+        survey: {
+          id: survey._id,
+          title: survey.title,
+          description: survey.description
+        },
+        questions: questions,
+        employee: {
+          email: token.employeeEmail,
+          name: token.employeeName
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error starting survey attempt with token:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while starting survey attempt'
+    });
+  }
+};
+
+// @desc    Start a survey attempt (legacy)
 // @route   POST /api/surveys/:surveyId/attempt
 // @access  Private/Public
 exports.startSurveyAttempt = async (req, res, next) => {
@@ -776,5 +868,137 @@ exports.getTokenBasedQuestions = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  }
+};
+
+// @desc    Submit survey responses with token (new URL format)
+// @route   POST /api/surveys/:surveyId/:tokenId/responses/submit
+// @access  Public
+exports.submitSurveyResponsesWithToken = async (req, res, next) => {
+  try {
+    const { surveyId, tokenId } = req.params;
+    const { attemptId, responses } = req.body;
+    
+    // Validate the survey token
+    const tokenValidation = await SurveyToken.validateToken(surveyId, tokenId);
+    
+    if (!tokenValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: tokenValidation.message,
+        status: 'invalid_token'
+      });
+    }
+    
+    const token = tokenValidation.token;
+    
+    // Check if this token has already been used to submit responses
+    const existingResponse = await Response.findOne({
+      surveyId: surveyId,
+      surveyTokenId: tokenId
+    });
+    
+    if (existingResponse) {
+      return res.status(400).json({
+        success: false,
+        message: 'This survey link has already been used to submit a response.',
+        status: 'already_completed'
+      });
+    }
+    
+    // Get the survey attempt
+    const attempt = await SurveyAttempt.findById(attemptId);
+    if (!attempt) {
+      return res.status(404).json({
+        success: false,
+        message: 'Survey attempt not found'
+      });
+    }
+    
+    if (attempt.surveyTokenId !== tokenId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token mismatch with survey attempt'
+      });
+    }
+    
+    if (attempt.completed) {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey attempt already completed'
+      });
+    }
+    
+    // Validate responses
+    if (!responses || !Array.isArray(responses) || responses.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No responses provided'
+      });
+    }
+    
+    // Get survey questions to validate responses
+    const questions = await Question.find({ surveyId: surveyId });
+    const questionMap = new Map(questions.map(q => [q._id.toString(), q]));
+    
+    // Validate each response
+    for (const responseData of responses) {
+      const question = questionMap.get(responseData.questionId);
+      if (!question) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid question ID: ${responseData.questionId}`
+        });
+      }
+      
+      if (question.required && (!responseData.answer || responseData.answer.trim() === '')) {
+        return res.status(400).json({
+          success: false,
+          message: `Response required for question: ${question.questionText}`
+        });
+      }
+    }
+    
+    // Save responses
+    const savedResponses = [];
+    for (const responseData of responses) {
+      if (responseData.answer && responseData.answer.trim() !== '') {
+        const response = await Response.create({
+          surveyId: surveyId,
+          questionId: responseData.questionId,
+          selectedOption: responseData.answer,
+          userId: null, // Public access
+          attemptId: attemptId,
+          anonymous: true,
+          surveyTokenId: tokenId
+        });
+        savedResponses.push(response);
+      }
+    }
+    
+    // Mark attempt as completed
+    attempt.completed = true;
+    attempt.completedAt = Date.now();
+    await attempt.save();
+    
+    // Mark token as used
+    await token.markAsUsed();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Survey responses submitted successfully',
+      data: {
+        attemptId: attempt._id,
+        responsesCount: savedResponses.length,
+        completedAt: attempt.completedAt
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error submitting survey responses with token:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while submitting responses'
+    });
   }
 };
