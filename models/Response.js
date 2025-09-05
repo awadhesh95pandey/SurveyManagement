@@ -73,6 +73,12 @@ ResponseSchema.index({ surveyId: 1, questionId: 1, userId: 1 }, {
   partialFilterExpression: { userId: { $ne: null } }
 });
 
+// Additional index to prevent duplicate responses from same survey token
+ResponseSchema.index({ surveyId: 1, surveyTokenId: 1, questionId: 1 }, { 
+  unique: true,
+  partialFilterExpression: { surveyTokenId: { $ne: null } }
+});
+
 // Method to check if response is anonymous
 ResponseSchema.methods.isAnonymous = function() {
   return !this.userId;

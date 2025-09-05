@@ -565,6 +565,18 @@ exports.submitTokenBasedResponse = async (req, res, next) => {
     
     // Check if token is already used
     if (surveyToken.status === 'used') {
+      // Log attempt to use already used token
+      console.warn(`Attempt to reuse survey token:`, {
+        tokenId: surveyToken._id,
+        employeeId: surveyToken.employeeId._id,
+        employeeEmail: surveyToken.employeeId.email,
+        surveyId: surveyToken.surveyId,
+        originalUsedAt: surveyToken.usedAt,
+        attemptedAt: new Date(),
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+      
       return res.status(400).json({
         success: false,
         message: 'Survey has already been completed using this token',
@@ -651,6 +663,20 @@ exports.submitTokenBasedResponse = async (req, res, next) => {
     
     // Mark token as used
     await surveyToken.markAsUsed(savedResponses[0]._id);
+    
+    // Log successful submission for audit purposes
+    console.log(`Survey submission completed:`, {
+      surveyId: survey._id,
+      surveyName: survey.name,
+      employeeId: surveyToken.employeeId._id,
+      employeeName: surveyToken.employeeId.name,
+      employeeEmail: surveyToken.employeeId.email,
+      tokenId: surveyToken._id,
+      responsesCount: savedResponses.length,
+      submittedAt: new Date(),
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent')
+    });
     
     res.status(201).json({
       success: true,
