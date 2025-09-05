@@ -195,10 +195,8 @@ const TakeSurvey = () => {
 
       setSuccess('Survey submitted successfully! Thank you for your participation.');
       
-      // Redirect after a delay
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 3000);
+      // For public access, just show success message without redirect
+      // Users can close the tab or navigate away manually
 
     } catch (err) {
       setError('Failed to submit survey. Please try again.');

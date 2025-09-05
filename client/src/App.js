@@ -122,7 +122,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/consent/:token" element={<ConsentForm />} />
         
-        {/* Anonymous Survey Route - No authentication required */}
+        {/* Public Survey Routes - No authentication required */}
+        <Route path="/surveys/:id/take" element={<TakeSurvey />} />
         <Route path="/survey/:token" element={<AnonymousSurveyAttempt />} />
 
         {/* Protected Routes */}
@@ -156,7 +157,6 @@ function App() {
             }
           />
           <Route path="surveys/:id" element={<SurveyDetail />} />
-          <Route path="surveys/:id/take" element={<TakeSurvey />} />
 
           {/* Question Routes */}
           <Route
