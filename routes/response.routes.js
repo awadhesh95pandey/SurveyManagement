@@ -28,5 +28,14 @@ router.route('/user/:userId')
 router.route('/participation')
   .get(protect, authorize('admin'), getSurveyParticipation);
 
-module.exports = router;
+// Public routes for survey taking (no authentication required)
+router.route('/public')
+  .post(submitResponse); // Allow public response submission
 
+router.route('/public/attempt')
+  .post(startSurveyAttempt); // Allow public survey attempt start
+
+router.route('/public/attempt/:attemptId/complete')
+  .put(completeSurveyAttempt); // Allow public survey attempt completion
+
+module.exports = router;
