@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -28,6 +28,7 @@ import { surveyApi, questionApi, responseApi } from '../../services/api';
 const TakeSurvey = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const [survey, setSurvey] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -38,12 +39,23 @@ const TakeSurvey = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [attemptId, setAttemptId] = useState(null);
-  const [employeeEmail, setEmployeeEmail] = useState('');
-  const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [token, setToken] = useState('');
+  const [tokenValidated, setTokenValidated] = useState(false);
 
   useEffect(() => {
     fetchSurveyData();
   }, [id]);
+
+  useEffect(() => {
+    // Extract token from URL parameters
+    const urlToken = searchParams.get('token');
+    if (urlToken) {
+      setToken(urlToken);
+      startSurveyWithToken(urlToken);
+    } else {
+      setError('Employee token is required. Please use the correct survey link provided to you.');
+    }
+  }, [searchParams]);
 
   const fetchSurveyData = async () => {
     try {
@@ -73,7 +85,7 @@ const TakeSurvey = () => {
     }
   };
 
-  const startSurveyWithEmail = async () => {
+  const startSurveyWithToken = async (employeeToken) => {
     try {
       setLoading(true);
       setError('');
@@ -99,21 +111,21 @@ const TakeSurvey = () => {
       });
       setResponses(initialResponses);
       
-      // Start survey attempt using public route with employee email
+      // Start survey attempt using public route with employee token
       const attemptResponse = await fetch(`/api/surveys/${id}/responses/public/attempt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          employeeEmail: employeeEmail
+          token: employeeToken
         })
       });
       
       if (!attemptResponse.ok) {
         const errorData = await attemptResponse.json();
         if (errorData.status === 'already_completed') {
-          setError('You have already completed this survey. Each employee can only submit one response.');
+          setError('This employee token has already been used to complete this survey.');
         } else {
           setError(errorData.message || 'Failed to start survey');
         }
@@ -122,7 +134,7 @@ const TakeSurvey = () => {
       
       const attemptData = await attemptResponse.json();
       setAttemptId(attemptData.data.attemptId);
-      setEmailSubmitted(true);
+      setTokenValidated(true);
       
     } catch (err) {
       setError('Failed to start survey');
@@ -132,18 +144,7 @@ const TakeSurvey = () => {
     }
   };
 
-  const handleEmailSubmit = (e) => {
-    e.preventDefault();
-    if (!employeeEmail.trim()) {
-      setError('Please enter your email address');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employeeEmail)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-    startSurveyWithEmail();
-  };
+
 
   const handleResponseChange = (questionId, value, questionType) => {
     setResponses(prev => {
@@ -413,15 +414,15 @@ const TakeSurvey = () => {
           <Divider sx={{ my: 2 }} />
         </Box>
 
-        {/* Employee Email Collection */}
-        {!emailSubmitted && (
+        {/* Token Validation Status */}
+        {!tokenValidated && (
           <Box sx={{ mb: 4 }}>
             <Card sx={{ p: 3, backgroundColor: '#f5f5f5' }}>
               <Typography variant="h6" gutterBottom>
-                Employee Verification Required
+                Validating Employee Token
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                To ensure each employee can only submit one response, please enter your email address to continue.
+                Please wait while we validate your employee token and load the survey...
               </Typography>
               
               {error && (
@@ -430,32 +431,18 @@ const TakeSurvey = () => {
                 </Alert>
               )}
               
-              <Box component="form" onSubmit={handleEmailSubmit}>
-                <TextField
-                  fullWidth
-                  label="Employee Email Address"
-                  type="email"
-                  value={employeeEmail}
-                  onChange={(e) => setEmployeeEmail(e.target.value)}
-                  required
-                  sx={{ mb: 2 }}
-                  placeholder="your.email@company.com"
-                />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading || !employeeEmail.trim()}
-                  sx={{ minWidth: 120 }}
-                >
-                  {loading ? <CircularProgress size={20} /> : 'Start Survey'}
-                </Button>
-              </Box>
+              {loading && !error && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <CircularProgress size={20} />
+                  <Typography variant="body2">Loading survey...</Typography>
+                </Box>
+              )}
             </Card>
           </Box>
         )}
 
-        {/* Survey Questions - Only show after email is submitted */}
-        {emailSubmitted && (
+        {/* Survey Questions - Only show after token is validated */}
+        {tokenValidated && (
           <>
             {/* Progress Indicator */}
             <Box sx={{ mb: 4 }}>

@@ -27,10 +27,9 @@ const SurveyAttemptSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  employeeEmail: {
+  employeeToken: {
     type: String,
     default: null,
-    lowercase: true,
     trim: true
   }
 });

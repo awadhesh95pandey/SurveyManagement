@@ -10,7 +10,7 @@ const SurveyToken = require('../models/SurveyToken');
 // @access  Private/Public
 exports.startSurveyAttempt = async (req, res, next) => {
   try {
-    const { employeeEmail } = req.body; // For public access, require employee email
+    const { token } = req.body; // For public access, require employee token
     
     const survey = await Survey.findById(req.params.surveyId);
     
@@ -33,25 +33,25 @@ exports.startSurveyAttempt = async (req, res, next) => {
     const userId = req.user ? req.user.id : null;
     let isAnonymous = true;
     
-    // For public access, require employee email to enforce single response per employee
-    if (!userId && !employeeEmail) {
+    // For public access, require employee token to enforce single response per employee
+    if (!userId && !token) {
       return res.status(400).json({
         success: false,
-        message: 'Employee email is required for survey participation'
+        message: 'Employee token is required for survey participation'
       });
     }
     
-    // Check for existing responses from this employee (for public access)
-    if (!userId && employeeEmail) {
+    // Check for existing responses from this employee token (for public access)
+    if (!userId && token) {
       const existingResponse = await Response.findOne({
         surveyId: req.params.surveyId,
-        employeeEmail: employeeEmail.toLowerCase().trim()
+        employeeToken: token.trim()
       });
       
       if (existingResponse) {
         return res.status(400).json({
           success: false,
-          message: 'You have already completed this survey. Each employee can only submit one response.',
+          message: 'This employee token has already been used to complete this survey.',
           status: 'already_completed'
         });
       }
@@ -90,7 +90,7 @@ exports.startSurveyAttempt = async (req, res, next) => {
       startedAt: Date.now(),
       completed: false,
       anonymous: isAnonymous,
-      employeeEmail: employeeEmail ? employeeEmail.toLowerCase().trim() : null
+      employeeToken: token ? token.trim() : null
     });
     
     // Get questions for the survey
@@ -535,7 +535,7 @@ const handleBulkResponseSubmission = async (req, res, next) => {
           userId: attempt.userId,
           attemptId: attemptId,
           anonymous: attempt.anonymous,
-          employeeEmail: attempt.employeeEmail
+          employeeToken: attempt.employeeToken
         });
         savedResponses.push(response);
       }
