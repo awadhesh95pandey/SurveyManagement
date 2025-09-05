@@ -1066,16 +1066,16 @@ exports.sendSurveyInvitations = async (req, res, next) => {
       });
     }
     
-    // Get all active tokens for this survey
+    // Get all unused tokens for this survey
     const tokens = await SurveyToken.find({
       surveyId: survey._id,
-      status: 'active'
-    }).populate('employeeId', 'name email department');
+      isUsed: false
+    });
     
     if (tokens.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'No active tokens found. Please generate tokens first.'
+        message: 'No active tokens found. Please generate tokens first using the department distribution feature.'
       });
     }
     
@@ -1095,50 +1095,56 @@ exports.sendSurveyInvitations = async (req, res, next) => {
           continue;
         }
         
-        const employee = token.employeeId;
-        const surveyLink = `${process.env.CLIENT_URL}/surveys/token/${token.token}/take`;
+        const surveyLink = `${process.env.CLIENT_URL}/surveys/${survey._id}/${token.tokenId}/take`;
         
-        // Create notification
-        await Notification.create({
-          userId: employee._id,
-          surveyId: survey._id,
-          type: 'survey_invitation',
-          title: `Survey Invitation: ${survey.name}`,
-          message: `You have been invited to participate in "${survey.name}". This is your personal survey link.`,
-          data: {
-            surveyId: survey._id,
-            surveyName: survey.name,
-            surveyLink: surveyLink,
-            tokenId: token._id,
-            expiresAt: token.expiresAt
-          },
-          priority: 'high'
-        });
+        // Find the user for notification (optional)
+        const user = await User.findOne({ email: token.employeeEmail });
+        
+        // Create notification if user exists
+        if (user) {
+          await Notification.create({
+            userId: user._id,
+            type: 'survey_invitation',
+            title: `Survey Invitation: ${survey.name}`,
+            message: `You have been invited to participate in "${survey.name}". This is your personal survey link.`,
+            data: {
+              surveyId: survey._id,
+              surveyName: survey.name,
+              surveyLink: surveyLink,
+              tokenId: token.tokenId,
+              expiresAt: token.expiresAt
+            },
+            priority: 'high'
+          });
+        }
         
         // Send personalized email
         await sendSurveyInvitationEmail({
-          to: employee.email,
-          employeeName: employee.name,
+          to: token.employeeEmail,
+          employeeName: token.employeeName,
           surveyName: survey.name,
           surveyDescription: survey.description || 'Please participate in this important survey.',
           surveyLink: surveyLink,
           dueDate: token.expiresAt,
-          departmentName: employee.department,
+          departmentName: user?.department?.name || 'N/A',
           isPersonalized: true,
           tokenExpiry: token.expiresAt
         });
         
-        // Mark token email as sent
-        await token.markEmailSent();
+        // Mark token email as sent (we'll add this field to the model)
+        token.emailSent = true;
+        token.emailSentAt = new Date();
+        await token.save();
         
         emailResults.sent++;
         
       } catch (emailError) {
-        console.error(`Failed to send survey invitation to ${token.employeeId.email}:`, emailError);
+        console.error(`Failed to send survey invitation to ${token.employeeEmail}:`, emailError);
         emailResults.failed++;
         emailResults.errors.push({
-          employeeId: token.employeeId._id,
-          email: token.employeeId.email,
+          tokenId: token.tokenId,
+          email: token.employeeEmail,
+          employeeName: token.employeeName,
           error: emailError.message
         });
       }

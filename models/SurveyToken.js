@@ -30,6 +30,14 @@ const SurveyTokenSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  emailSent: {
+    type: Boolean,
+    default: false
+  },
+  emailSentAt: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -75,4 +83,3 @@ SurveyTokenSchema.statics.validateToken = async function(surveyId, tokenId) {
 };
 
 module.exports = mongoose.model('SurveyToken', SurveyTokenSchema);
-
