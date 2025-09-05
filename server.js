@@ -15,6 +15,7 @@ const notificationRoutes = require('./routes/notification.routes');
 const anonymousRoutes = require('./routes/anonymous');
 const departmentRoutes = require('./routes/department.routes');
 const employeeRoutes = require('./routes/employee.routes');
+const surveyTokenRoutes = require('./routes/surveyToken.routes');
 
 // Import token-based response controllers
 const { submitTokenBasedResponse, getTokenBasedQuestions } = require('./controllers/response.controller');
@@ -64,6 +65,9 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/employees', employeeRoutes);
+
+// Survey token routes (new URL format)
+app.use('/api/surveys', surveyTokenRoutes);
 
 // Anonymous routes (no authentication required)
 app.use('/api', anonymousRoutes);
