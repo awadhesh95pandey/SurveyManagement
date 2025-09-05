@@ -50,7 +50,14 @@ const TakeSurvey = () => {
       // Get survey details using public route
       const surveyResult = await fetch(`/api/surveys/${id}/take`);
       if (!surveyResult.ok) {
-        setError('Failed to load survey details');
+        const errorData = await surveyResult.json();
+        if (errorData.status === 'upcoming') {
+          setError(`Survey has not started yet. It will be available from ${new Date(errorData.publishDate).toLocaleDateString()}.`);
+        } else if (errorData.status === 'closed') {
+          setError(`Survey has ended on ${new Date(errorData.endDate).toLocaleDateString()}.`);
+        } else {
+          setError(errorData.message || 'Failed to load survey details');
+        }
         return;
       }
       const surveyData = await surveyResult.json();
@@ -209,17 +216,20 @@ const TakeSurvey = () => {
   const renderQuestion = (question) => {
     const response = responses[question._id];
 
+    // Handle undefined question text
+    const questionText = question.text || question.question || 'Question text not available';
+
     switch (question.type) {
       case 'multiple_choice':
         if (question.allowMultiple) {
           return (
             <FormControl component="fieldset" fullWidth>
               <FormLabel component="legend" sx={{ mb: 2, fontWeight: 'bold' }}>
-                {question.text}
+                {questionText}
                 {question.required && <span style={{ color: 'red' }}> *</span>}
               </FormLabel>
               <FormGroup>
-                {question.options.map((option, index) => (
+                {(question.options || []).map((option, index) => (
                   <FormControlLabel
                     key={index}
                     control={
@@ -228,7 +238,7 @@ const TakeSurvey = () => {
                         onChange={(e) => handleResponseChange(question._id, option, question.type)}
                       />
                     }
-                    label={option}
+                    label={option || `Option ${index + 1}`}
                   />
                 ))}
               </FormGroup>
@@ -238,19 +248,19 @@ const TakeSurvey = () => {
           return (
             <FormControl component="fieldset" fullWidth>
               <FormLabel component="legend" sx={{ mb: 2, fontWeight: 'bold' }}>
-                {question.text}
+                {questionText}
                 {question.required && <span style={{ color: 'red' }}> *</span>}
               </FormLabel>
               <RadioGroup
                 value={response}
                 onChange={(e) => handleResponseChange(question._id, e.target.value, question.type)}
               >
-                {question.options.map((option, index) => (
+                {(question.options || []).map((option, index) => (
                   <FormControlLabel
                     key={index}
                     value={option}
                     control={<Radio />}
-                    label={option}
+                    label={option || `Option ${index + 1}`}
                   />
                 ))}
               </RadioGroup>
@@ -262,7 +272,7 @@ const TakeSurvey = () => {
         return (
           <FormControl fullWidth>
             <TextField
-              label={question.text + (question.required ? ' *' : '')}
+              label={questionText + (question.required ? ' *' : '')}
               multiline
               rows={4}
               value={response}
@@ -277,7 +287,7 @@ const TakeSurvey = () => {
         return (
           <FormControl component="fieldset" fullWidth>
             <FormLabel component="legend" sx={{ mb: 2, fontWeight: 'bold' }}>
-              {question.text}
+              {questionText}
               {question.required && <span style={{ color: 'red' }}> *</span>}
             </FormLabel>
             <RadioGroup
@@ -300,7 +310,7 @@ const TakeSurvey = () => {
       default:
         return (
           <TextField
-            label={question.text + (question.required ? ' *' : '')}
+            label={questionText + (question.required ? ' *' : '')}
             value={response}
             onChange={(e) => handleResponseChange(question._id, e.target.value, question.type)}
             variant="outlined"
