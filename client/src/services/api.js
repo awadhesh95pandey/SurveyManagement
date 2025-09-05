@@ -807,6 +807,7 @@ export const employeeApi = {
 
   // Get employees by department
   getEmployeesByDepartment: async (departmentId, params = {}) => {
+    debugger;
     try {
       const response = await axios.get(`/api/employees/by-department/${departmentId}`, { params });
       return { success: true, data: response.data.data };

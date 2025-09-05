@@ -82,11 +82,22 @@ const DepartmentSurveyDistribution = ({
   }, [selectedDepartments]);
 
   const fetchDepartments = async () => {
+    debugger;
     setLoading(true);
     try {
       const result = await departmentApi.getDepartments();
       if (result.success) {
-        setDepartments(result.data);
+              // Fetch employee count for each department in parallel
+      const departmentsWithCount = await Promise.all(
+        result.data.map(async (dept) => {
+          const employeeCounts = await departmentApi.getDepartmentEmployees(dept._id);
+          return {
+            ...dept,
+            employeeCount: employeeCounts.success ? employeeCounts.data.length : 0,
+          };
+        })
+      );
+        setDepartments(departmentsWithCount);
       } else {
         toast.error('Failed to fetch departments');
       }
@@ -99,6 +110,7 @@ const DepartmentSurveyDistribution = ({
   };
 
   const fetchEmployeePreview = async () => {
+    debugger;
     setPreviewLoading(true);
     try {
       const employeePromises = selectedDepartments.map(deptId => 
