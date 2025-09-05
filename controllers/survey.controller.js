@@ -786,7 +786,7 @@ exports.sendSurveyLinksToDepartments = async (req, res, next) => {
 
     // Create notifications for each target employee
     const notifications = [];
-    const surveyLink = `${process.env.CLIENT_URL}/surveys/${survey._id}/take`;
+    const surveyLink = `${process.env.FRONTEND_URL}/surveys/${survey._id}/take`;
 
     for (const employee of targetEmployees) {
       // Create notification
