@@ -23,7 +23,7 @@ import {
   CardContent,
   Divider
 } from '@mui/material';
-import { surveyApi } from '../../services/api';
+import { surveyApi, questionApi, responseApi } from '../../services/api';
 
 const TakeSurvey = () => {
   const { id } = useParams();
@@ -47,27 +47,28 @@ const TakeSurvey = () => {
     try {
       setLoading(true);
       
-      // Get survey details
-      const surveyResult = await surveyApi.getSurvey(id);
-      if (!surveyResult.success) {
-        setError(surveyResult.message);
+      // Get survey details using public route
+      const surveyResult = await fetch(`/api/surveys/${id}/take`);
+      if (!surveyResult.ok) {
+        setError('Failed to load survey details');
         return;
       }
+      const surveyData = await surveyResult.json();
+      setSurvey(surveyData.data);
       
-      setSurvey(surveyResult.data);
-      
-      // Get survey questions
-      const questionsResult = await surveyApi.getSurveyQuestions(id);
-      if (!questionsResult.success) {
-        setError(questionsResult.message);
+      // Get survey questions using public route
+      const questionsResult = await fetch(`/api/surveys/${id}/questions/public`);
+      if (!questionsResult.ok) {
+        setError('Failed to load survey questions');
         return;
       }
+      const questionsData = await questionsResult.json();
       
-      setQuestions(questionsResult.data);
+      setQuestions(questionsData.data);
       
       // Initialize responses object
       const initialResponses = {};
-      questionsResult.data.forEach(question => {
+      questionsData.data.forEach(question => {
         if (question.type === 'multiple_choice' && question.allowMultiple) {
           initialResponses[question._id] = [];
         } else {
@@ -76,10 +77,17 @@ const TakeSurvey = () => {
       });
       setResponses(initialResponses);
       
-      // Start survey attempt
-      const attemptResult = await surveyApi.startSurveyAttempt(id);
-      if (attemptResult.success) {
-        setAttemptId(attemptResult.data.attemptId);
+      // Start survey attempt using public route
+      const attemptResponse = await fetch(`/api/surveys/${id}/responses/public/attempt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (attemptResponse.ok) {
+        const attemptData = await attemptResponse.json();
+        setAttemptId(attemptData.data.attemptId);
       }
       
     } catch (err) {
@@ -157,20 +165,32 @@ const TakeSurvey = () => {
         questionType: question.type
       }));
 
-      // Submit responses
-      const result = await surveyApi.submitSurveyResponses(id, {
-        attemptId,
-        responses: formattedResponses
+      // Submit responses using public route
+      const submitResponse = await fetch(`/api/surveys/${id}/responses/public`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          attemptId,
+          responses: formattedResponses
+        })
       });
 
-      if (!result.success) {
-        setError(result.message);
+      if (!submitResponse.ok) {
+        const errorData = await submitResponse.json();
+        setError(errorData.message || 'Failed to submit responses');
         return;
       }
 
-      // Complete the attempt
+      // Complete the attempt using public route
       if (attemptId) {
-        await surveyApi.completeSurveyAttempt(id, attemptId);
+        await fetch(`/api/surveys/${id}/responses/public/attempt/${attemptId}/complete`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
       }
 
       setSuccess('Survey submitted successfully! Thank you for your participation.');

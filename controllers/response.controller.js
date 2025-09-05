@@ -26,35 +26,40 @@ exports.startSurveyAttempt = async (req, res, next) => {
       });
     }
     
-    // Check if user has already completed the survey
-    const existingAttempt = await SurveyAttempt.findOne({
-      surveyId: req.params.surveyId,
-      userId: req.user.id,
-      completed: true
-    });
-    
-    if (existingAttempt) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already completed this survey'
-      });
-    }
-    
-    // Check if user has given consent
+    // Handle both authenticated and public access
+    const userId = req.user ? req.user.id : null;
     let isAnonymous = true;
-    const consentRecord = await Consent.findOne({
-      surveyId: req.params.surveyId,
-      userId: req.user.id
-    });
     
-    if (consentRecord && consentRecord.consentGiven === true) {
-      isAnonymous = false;
+    if (userId) {
+      // Check if user has already completed the survey (only for authenticated users)
+      const existingAttempt = await SurveyAttempt.findOne({
+        surveyId: req.params.surveyId,
+        userId: userId,
+        completed: true
+      });
+      
+      if (existingAttempt) {
+        return res.status(400).json({
+          success: false,
+          message: 'You have already completed this survey'
+        });
+      }
+      
+      // Check if user has given consent
+      const consentRecord = await Consent.findOne({
+        surveyId: req.params.surveyId,
+        userId: userId
+      });
+      
+      if (consentRecord && consentRecord.consentGiven === true) {
+        isAnonymous = false;
+      }
     }
     
     // Create survey attempt
     const attempt = await SurveyAttempt.create({
       surveyId: req.params.surveyId,
-      userId: isAnonymous ? null : req.user.id,
+      userId: isAnonymous ? null : userId,
       startedAt: Date.now(),
       completed: false,
       anonymous: isAnonymous
@@ -78,13 +83,20 @@ exports.startSurveyAttempt = async (req, res, next) => {
   }
 };
 
-// @desc    Submit a response to a question
+// @desc    Submit a response to a question (single or bulk)
 // @route   POST /api/surveys/:surveyId/responses
-// @access  Private
+// @access  Private/Public
 exports.submitResponse = async (req, res, next) => {
   try {
-    const { questionId, selectedOption, attemptId } = req.body;
+    // Handle both single response and bulk responses
+    const { questionId, selectedOption, attemptId, responses } = req.body;
     
+    // Check if this is a bulk response submission
+    if (responses && Array.isArray(responses)) {
+      return await handleBulkResponseSubmission(req, res, next);
+    }
+    
+    // Handle single response submission
     if (!questionId || !selectedOption || !attemptId) {
       return res.status(400).json({
         success: false,
@@ -217,8 +229,8 @@ exports.completeSurveyAttempt = async (req, res, next) => {
       });
     }
     
-    // If the attempt is not anonymous, verify it belongs to the current user
-    if (!attempt.anonymous && attempt.userId && attempt.userId.toString() !== req.user.id) {
+    // If the attempt is not anonymous and user is authenticated, verify it belongs to the current user
+    if (!attempt.anonymous && attempt.userId && req.user && attempt.userId.toString() !== req.user.id) {
       return res.status(401).json({
         success: false,
         message: 'Not authorized to complete this survey attempt'
@@ -391,3 +403,124 @@ exports.getSurveyParticipation = async (req, res, next) => {
   }
 };
 
+// Helper function to handle bulk response submission
+const handleBulkResponseSubmission = async (req, res, next) => {
+  try {
+    const { attemptId, responses } = req.body;
+    
+    if (!attemptId || !responses || !Array.isArray(responses)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide attemptId and responses array'
+      });
+    }
+    
+    // Check if survey exists and is active
+    const survey = await Survey.findById(req.params.surveyId);
+    
+    if (!survey) {
+      return res.status(404).json({
+        success: false,
+        message: `Survey not found with id of ${req.params.surveyId}`
+      });
+    }
+    
+    if (survey.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey is not active'
+      });
+    }
+    
+    // Check if attempt exists and is not completed
+    const attempt = await SurveyAttempt.findOne({
+      _id: attemptId,
+      surveyId: req.params.surveyId,
+      completed: false
+    });
+    
+    if (!attempt) {
+      return res.status(404).json({
+        success: false,
+        message: 'Survey attempt not found or already completed'
+      });
+    }
+    
+    // Get all questions for the survey to validate responses
+    const questions = await Question.find({ surveyId: req.params.surveyId });
+    const questionMap = {};
+    questions.forEach(q => {
+      questionMap[q._id.toString()] = q;
+    });
+    
+    // Validate all responses
+    for (const responseData of responses) {
+      if (!responseData.questionId || !responseData.answer) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each response must have questionId and answer'
+        });
+      }
+      
+      const question = questionMap[responseData.questionId];
+      if (!question) {
+        return res.status(400).json({
+          success: false,
+          message: `Question with ID ${responseData.questionId} not found in this survey`
+        });
+      }
+      
+      // Validate answer based on question type
+      if (question.type === 'multiple-choice' && !question.options.includes(responseData.answer)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid option "${responseData.answer}" for question "${question.text}"`
+        });
+      }
+    }
+    
+    // Save all responses
+    const savedResponses = [];
+    for (const responseData of responses) {
+      const question = questionMap[responseData.questionId];
+      
+      // Check if a response already exists for this question in this attempt
+      let existingResponse = await Response.findOne({
+        surveyId: req.params.surveyId,
+        questionId: responseData.questionId,
+        userId: attempt.userId,
+        attemptId: attemptId
+      });
+      
+      if (existingResponse) {
+        // Update existing response
+        existingResponse.selectedOption = responseData.answer;
+        existingResponse.updatedAt = Date.now();
+        await existingResponse.save();
+        savedResponses.push(existingResponse);
+      } else {
+        // Create new response
+        const response = await Response.create({
+          surveyId: req.params.surveyId,
+          questionId: responseData.questionId,
+          selectedOption: responseData.answer,
+          userId: attempt.userId,
+          attemptId: attemptId,
+          anonymous: attempt.anonymous
+        });
+        savedResponses.push(response);
+      }
+    }
+    
+    res.status(201).json({
+      success: true,
+      message: 'Responses submitted successfully',
+      data: {
+        responsesCount: savedResponses.length,
+        attemptId: attemptId
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
