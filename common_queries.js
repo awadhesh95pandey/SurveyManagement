@@ -46,7 +46,6 @@ function getActiveSurveys() {
   const now = new Date();
   return db.surveys.find({
     publishDate: { $lte: now },
-    endDate: { $gte: now },
     status: "active"
   }).sort({ endDate: 1 }).toArray();
 }

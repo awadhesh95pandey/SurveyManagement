@@ -421,7 +421,6 @@ exports.getActiveSurveys = async (req, res, next) => {
     
     const surveys = await Survey.find({
       publishDate: { $lte: now },
-      endDate: { $gte: now },
       status: 'active'
     }).sort({ endDate: 1 });
     

@@ -179,6 +179,7 @@ const TakeSurvey = () => {
   };
 
   const handleSubmit = async () => {
+    debugger;
     try {
       setSubmitting(true);
       setError('');
