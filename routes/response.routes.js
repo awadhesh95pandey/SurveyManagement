@@ -5,7 +5,9 @@ const {
   completeSurveyAttempt,
   getSurveyResponses,
   getUserResponses,
-  getSurveyParticipation
+  getSurveyParticipation,
+  submitTokenBasedResponse,
+  getTokenBasedQuestions
 } = require('../controllers/response.controller');
 
 const router = express.Router({ mergeParams: true });

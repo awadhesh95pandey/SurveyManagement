@@ -16,6 +16,9 @@ const anonymousRoutes = require('./routes/anonymous');
 const departmentRoutes = require('./routes/department.routes');
 const employeeRoutes = require('./routes/employee.routes');
 
+// Import token-based response controllers
+const { submitTokenBasedResponse, getTokenBasedQuestions } = require('./controllers/response.controller');
+
 // Import seeders
 const { runSeeders } = require('./seeders');
 
@@ -64,6 +67,10 @@ app.use('/api/employees', employeeRoutes);
 
 // Anonymous routes (no authentication required)
 app.use('/api', anonymousRoutes);
+
+// Token-based survey routes (public access)
+app.post('/api/surveys/token/:token/responses', submitTokenBasedResponse);
+app.get('/api/surveys/token/:token/questions', getTokenBasedQuestions);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
