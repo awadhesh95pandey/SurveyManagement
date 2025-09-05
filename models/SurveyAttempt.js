@@ -31,6 +31,11 @@ const SurveyAttemptSchema = new mongoose.Schema({
     type: String,
     default: null,
     trim: true
+  },
+  surveyTokenId: {
+    type: String,
+    default: null,
+    trim: true
   }
 });
 

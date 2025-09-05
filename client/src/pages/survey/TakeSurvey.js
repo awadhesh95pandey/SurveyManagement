@@ -26,7 +26,7 @@ import {
 import { surveyApi, questionApi, responseApi } from '../../services/api';
 
 const TakeSurvey = () => {
-  const { id } = useParams();
+  const { id, tokenId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -47,15 +47,14 @@ const TakeSurvey = () => {
   }, [id]);
 
   useEffect(() => {
-    // Extract token from URL parameters
-    const urlToken = searchParams.get('token');
-    if (urlToken) {
-      setToken(urlToken);
-      startSurveyWithToken(urlToken);
+    // Extract token from URL path parameters
+    if (tokenId) {
+      setToken(tokenId);
+      startSurveyWithToken(tokenId);
     } else {
-      setError('Employee token is required. Please use the correct survey link provided to you.');
+      setError('Survey token is required. Please use the correct survey link provided to you.');
     }
-  }, [searchParams]);
+  }, [tokenId]);
 
   const fetchSurveyData = async () => {
     debugger;
@@ -86,47 +85,25 @@ const TakeSurvey = () => {
     }
   };
 
-  const startSurveyWithToken = async (employeeToken) => {
+  const startSurveyWithToken = async (surveyToken) => {
     try {
       setLoading(true);
       setError('');
       
-      // Get survey questions using public route
-      const questionsResult = await fetch(`/api/surveys/${id}/questions/public`);
-      if (!questionsResult.ok) {
-        setError('Failed to load survey questions');
-        return;
-      }
-      const questionsData = await questionsResult.json();
-      
-      setQuestions(questionsData.data);
-      
-      // Initialize responses object
-      const initialResponses = {};
-      questionsData.data.forEach(question => {
-        if (question.type === 'multiple_choice' && question.allowMultiple) {
-          initialResponses[question._id] = [];
-        } else {
-          initialResponses[question._id] = '';
-        }
-      });
-      setResponses(initialResponses);
-      
-      // Start survey attempt using public route with employee token
-      const attemptResponse = await fetch(`/api/surveys/${id}/responses/public/attempt`, {
+      // Start survey attempt using new token-based route
+      const attemptResponse = await fetch(`/api/surveys/${id}/${surveyToken}/attempt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          token: employeeToken
-        })
+        }
       });
       
       if (!attemptResponse.ok) {
         const errorData = await attemptResponse.json();
         if (errorData.status === 'already_completed') {
-          setError('This employee token has already been used to complete this survey.');
+          setError('This survey link has already been used to submit a response.');
+        } else if (errorData.status === 'invalid_token') {
+          setError('Invalid or expired survey token. Please check your survey link.');
         } else {
           setError(errorData.message || 'Failed to start survey');
         }
@@ -134,7 +111,23 @@ const TakeSurvey = () => {
       }
       
       const attemptData = await attemptResponse.json();
+      
+      // Set survey data
+      setSurvey(attemptData.data.survey);
+      setQuestions(attemptData.data.questions);
       setAttemptId(attemptData.data.attemptId);
+      
+      // Initialize responses object
+      const initialResponses = {};
+      attemptData.data.questions.forEach(question => {
+        if (question.questionType === 'multiple_choice' && question.allowMultiple) {
+          initialResponses[question._id] = [];
+        } else {
+          initialResponses[question._id] = '';
+        }
+      });
+      setResponses(initialResponses);
+      
       setTokenValidated(true);
       
     } catch (err) {
@@ -214,8 +207,8 @@ const TakeSurvey = () => {
         questionType: question.type
       }));
 
-      // Submit responses using public route
-      const submitResponse = await fetch(`/api/surveys/${id}/responses/public`, {
+      // Submit responses using new token-based route
+      const submitResponse = await fetch(`/api/surveys/${id}/${token}/responses/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
