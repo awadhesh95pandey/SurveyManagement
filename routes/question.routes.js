@@ -17,6 +17,10 @@ router.route('/')
   .get(protect, getQuestions)
   .post(protect, authorize('admin'), createQuestion);
 
+// Public route for getting questions when taking a survey
+router.route('/public')
+  .get(getQuestions); // Allow public access to questions for survey taking
+
 router.route('/upload')
   .post(protect, authorize('admin'), uploadQuestions);
 
@@ -29,4 +33,3 @@ router.route('/:id')
   .delete(protect, authorize('admin'), deleteQuestion);
 
 module.exports = router;
-

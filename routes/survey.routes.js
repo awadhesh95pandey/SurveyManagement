@@ -65,4 +65,8 @@ router.route('/:id/send-to-departments')
 router.route('/:id/consent/status')
   .get(protect, authorize('admin'), getConsentStatus);
 
+// Public route for taking surveys (no authentication required)
+router.route('/:id/take')
+  .get(getSurvey); // Allow public access to survey details for taking
+
 module.exports = router;
