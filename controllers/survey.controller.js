@@ -3,7 +3,7 @@ const Question = require('../models/Question');
 const Consent = require('../models/Consent');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
-const { sendConsentRequestEmail } = require('../utils/emailSender');
+const { sendConsentRequestEmail, sendSurveyInvitationEmail } = require('../utils/emailSender');
 
 // Helper function to get target users for a survey
 const getTargetUsers = async (survey) => {
@@ -784,35 +784,86 @@ exports.sendSurveyLinksToDepartments = async (req, res, next) => {
       });
     }
 
-    // Create notifications for each target employee
+    // Create notifications and send emails for each target employee
     const notifications = [];
-    const surveyLink = `${process.env.FRONTEND_URL}/surveys/${survey._id}/take`;
+    const emailResults = [];
+    const surveyLink = `${process.env.CLIENT_URL}/surveys/${survey._id}/take`;
 
     for (const employee of targetEmployees) {
-      // Create notification
-      const notification = await Notification.create({
-        userId: employee._id,
-        type: 'survey_invitation',
-        title: `New Survey: ${survey.name}`,
-        message: `You have been invited to participate in the survey "${survey.name}". Please click the link to start.`,
-        data: {
-          surveyId: survey._id,
-          surveyName: survey.name,
-          surveyLink: surveyLink,
-          dueDate: survey.endDate
-        },
-        priority: 'medium'
-      });
+      try {
+        // Create notification
+        const notification = await Notification.create({
+          userId: employee._id,
+          type: 'survey_invitation',
+          title: `New Survey: ${survey.name}`,
+          message: `You have been invited to participate in the survey "${survey.name}". Please click the link to start.`,
+          data: {
+            surveyId: survey._id,
+            surveyName: survey.name,
+            surveyLink: surveyLink,
+            dueDate: survey.endDate
+          },
+          priority: 'medium'
+        });
 
-      notifications.push(notification);
+        notifications.push(notification);
 
-      // TODO: Send email notification (implement email service)
-      // await sendSurveyInvitationEmail(employee.email, {
-      //   employeeName: employee.name,
-      //   surveyName: survey.name,
-      //   surveyLink: surveyLink,
-      //   dueDate: survey.endDate
-      // });
+        // Send email notification
+        try {
+          const emailResult = await sendSurveyInvitationEmail({
+            to: employee.email,
+            employeeName: employee.name,
+            surveyName: survey.name,
+            surveyDescription: survey.description,
+            surveyLink: surveyLink,
+            dueDate: survey.endDate,
+            departmentName: employee.department?.name
+          });
+
+          emailResults.push({
+            employeeId: employee._id,
+            employeeName: employee.name,
+            email: employee.email,
+            status: 'sent',
+            messageId: emailResult.messageId,
+            sentAt: new Date()
+          });
+
+          // Update notification as sent
+          notification.sent = true;
+          notification.sentAt = new Date();
+          notification.deliveryStatus = 'sent';
+          await notification.save();
+
+          console.log(`Survey invitation email sent to ${employee.email} for survey ${survey.name}`);
+        } catch (emailError) {
+          console.error(`Failed to send email to ${employee.email}:`, emailError.message);
+          
+          emailResults.push({
+            employeeId: employee._id,
+            employeeName: employee.name,
+            email: employee.email,
+            status: 'failed',
+            error: emailError.message,
+            attemptedAt: new Date()
+          });
+
+          // Update notification as failed
+          notification.deliveryStatus = 'failed';
+          await notification.save();
+        }
+      } catch (notificationError) {
+        console.error(`Failed to create notification for ${employee.email}:`, notificationError.message);
+        
+        emailResults.push({
+          employeeId: employee._id,
+          employeeName: employee.name,
+          email: employee.email,
+          status: 'failed',
+          error: `Notification creation failed: ${notificationError.message}`,
+          attemptedAt: new Date()
+        });
+      }
     }
 
     // Update survey with target employees if not already set
@@ -821,21 +872,36 @@ exports.sendSurveyLinksToDepartments = async (req, res, next) => {
       await survey.save();
     }
 
+    // Calculate email statistics
+    const emailStats = {
+      total: emailResults.length,
+      sent: emailResults.filter(r => r.status === 'sent').length,
+      failed: emailResults.filter(r => r.status === 'failed').length
+    };
+
     res.status(200).json({
       success: true,
-      message: `Survey links sent successfully to ${targetEmployees.length} employees`,
+      message: `Survey distribution completed: ${emailStats.sent} emails sent successfully, ${emailStats.failed} failed`,
       data: {
         surveyId: survey._id,
         surveyName: survey.name,
         targetEmployees: targetEmployees.length,
         departments: departmentIds.length,
         notifications: notifications.length,
-        employeeDetails: targetEmployees.map(emp => ({
-          id: emp._id,
-          name: emp.name,
-          email: emp.email,
-          department: emp.department?.name || 'No Department'
-        }))
+        emailStats,
+        employeeDetails: targetEmployees.map(emp => {
+          const emailResult = emailResults.find(r => r.employeeId.toString() === emp._id.toString());
+          return {
+            id: emp._id,
+            name: emp.name,
+            email: emp.email,
+            department: emp.department?.name || 'No Department',
+            emailStatus: emailResult?.status || 'unknown',
+            emailSentAt: emailResult?.sentAt || null,
+            emailError: emailResult?.error || null
+          };
+        }),
+        emailResults: emailResults
       }
     });
   } catch (err) {
