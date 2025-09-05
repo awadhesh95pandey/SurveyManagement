@@ -26,6 +26,12 @@ const ResponseSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // For token-based responses
+  surveyTokenId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'SurveyToken',
+    default: null
+  },
   // Metadata
   submittedAt: {
     type: Date,
@@ -117,4 +123,3 @@ ResponseSchema.statics.getSurveyStats = async function(surveyId) {
 };
 
 module.exports = mongoose.model('Response', ResponseSchema);
-

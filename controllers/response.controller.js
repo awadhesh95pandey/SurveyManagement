@@ -3,6 +3,7 @@ const SurveyAttempt = require('../models/SurveyAttempt');
 const Survey = require('../models/Survey');
 const Question = require('../models/Question');
 const Consent = require('../models/Consent');
+const SurveyToken = require('../models/SurveyToken');
 
 // @desc    Start a survey attempt
 // @route   POST /api/surveys/:surveyId/attempt
@@ -519,6 +520,205 @@ const handleBulkResponseSubmission = async (req, res, next) => {
         responsesCount: savedResponses.length,
         attemptId: attemptId
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Submit survey responses using token
+// @route   POST /api/surveys/token/:token/responses
+// @access  Public
+exports.submitTokenBasedResponse = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { responses } = req.body;
+    
+    if (!responses || !Array.isArray(responses) || responses.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide responses array'
+      });
+    }
+    
+    // Find and validate the token
+    const surveyToken = await SurveyToken.findOne({ token })
+      .populate('surveyId')
+      .populate('employeeId', 'name email department');
+    
+    if (!surveyToken) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid survey token'
+      });
+    }
+    
+    // Check if token is expired
+    if (surveyToken.isExpired) {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey token has expired',
+        status: 'expired',
+        expiredAt: surveyToken.expiresAt
+      });
+    }
+    
+    // Check if token is already used
+    if (surveyToken.status === 'used') {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey has already been completed using this token',
+        status: 'used',
+        usedAt: surveyToken.usedAt
+      });
+    }
+    
+    const survey = surveyToken.surveyId;
+    
+    // Check survey timing
+    const now = new Date();
+    const publishDate = new Date(survey.publishDate);
+    const endDate = survey.endDate;
+    
+    if (now < publishDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey has not started yet',
+        status: 'upcoming',
+        publishDate: publishDate
+      });
+    } else if (now > endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey has ended',
+        status: 'closed',
+        endDate: endDate
+      });
+    }
+    
+    // Get all questions for the survey to validate responses
+    const questions = await Question.find({ surveyId: survey._id });
+    const questionMap = {};
+    questions.forEach(q => {
+      questionMap[q._id.toString()] = q;
+    });
+    
+    // Validate all responses
+    for (const responseData of responses) {
+      if (!responseData.questionId || responseData.answer === undefined || responseData.answer === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each response must have questionId and answer'
+        });
+      }
+      
+      const question = questionMap[responseData.questionId];
+      if (!question) {
+        return res.status(400).json({
+          success: false,
+          message: `Question with ID ${responseData.questionId} not found in this survey`
+        });
+      }
+      
+      // Validate answer based on question type
+      if (question.type === 'multiple_choice' && question.options && !question.options.includes(responseData.answer)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid option "${responseData.answer}" for question "${question.text || question.question}"`
+        });
+      }
+    }
+    
+    // Save all responses
+    const savedResponses = [];
+    for (const responseData of responses) {
+      const question = questionMap[responseData.questionId];
+      
+      // Create response linked to the survey token
+      const response = await Response.create({
+        surveyId: survey._id,
+        questionId: responseData.questionId,
+        selectedOption: responseData.answer,
+        userId: surveyToken.employeeId._id, // Link to employee
+        surveyTokenId: surveyToken._id, // Link to token
+        hasConsent: true, // Token-based responses have implicit consent
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+      
+      savedResponses.push(response);
+    }
+    
+    // Mark token as used
+    await surveyToken.markAsUsed(savedResponses[0]._id);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Survey submitted successfully! Thank you for your participation.',
+      data: {
+        surveyId: survey._id,
+        surveyName: survey.name,
+        responsesCount: savedResponses.length,
+        submittedAt: new Date(),
+        employee: {
+          name: surveyToken.employeeId.name,
+          department: surveyToken.employeeId.department
+        }
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get questions for token-based survey
+// @route   GET /api/surveys/token/:token/questions
+// @access  Public
+exports.getTokenBasedQuestions = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    
+    // Find and validate the token
+    const surveyToken = await SurveyToken.findOne({ token })
+      .populate('surveyId');
+    
+    if (!surveyToken) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid survey token'
+      });
+    }
+    
+    // Check if token is expired
+    if (surveyToken.isExpired) {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey token has expired',
+        status: 'expired',
+        expiredAt: surveyToken.expiresAt
+      });
+    }
+    
+    // Check if token is already used
+    if (surveyToken.status === 'used') {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey has already been completed',
+        status: 'used',
+        usedAt: surveyToken.usedAt
+      });
+    }
+    
+    const survey = surveyToken.surveyId;
+    
+    // Get questions for the survey
+    const questions = await Question.find({ surveyId: survey._id })
+      .sort({ order: 1, createdAt: 1 });
+    
+    res.status(200).json({
+      success: true,
+      count: questions.length,
+      data: questions
     });
   } catch (err) {
     next(err);
