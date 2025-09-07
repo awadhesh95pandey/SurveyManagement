@@ -971,15 +971,31 @@ export const employeeApi = {
         responseType: 'blob'
       });
       
+      // Get the content type from response headers
+      const contentType = response.headers['content-type'];
+      
+      // Create blob with proper content type
+      const blob = new Blob([response.data], { 
+        type: contentType || (format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      });
+      
       // Create blob link to download
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `sample_employees.${format}`);
+      
+      // Ensure the link is added to DOM for Firefox compatibility
       document.body.appendChild(link);
+      
+      // Trigger download
       link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
       
       return { success: true };
     } catch (error) {
