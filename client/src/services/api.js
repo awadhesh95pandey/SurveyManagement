@@ -944,6 +944,51 @@ export const employeeApi = {
         message: error.response?.data?.message || 'Failed to fetch managers' 
       };
     }
+  },
+
+  // Import employees from file
+  importEmployees: async (formData) => {
+    try {
+      const response = await axios.post('/api/employees/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return { success: true, data: response.data.data, message: response.data.message };
+    } catch (error) {
+      console.error('Error importing employees:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to import employees'
+      };
+    }
+  },
+
+  // Download sample employee template
+  downloadSampleTemplate: async (format = 'xlsx') => {
+    try {
+      const response = await axios.get(`/api/employees/sample-template?format=${format}`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `sample_employees.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error downloading sample template:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to download sample template'
+      };
+    }
   }
 };
 

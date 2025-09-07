@@ -3,6 +3,26 @@ const router = express.Router();
 const User = require('../models/User');
 const Department = require('../models/Department');
 const { protect, authorize } = require('../middleware/auth');
+const multer = require('multer');
+const xlsx = require('xlsx');
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || 
+        file.mimetype === 'application/vnd.ms-excel' ||
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV and Excel files are allowed'), false);
+    }
+  }
+});
 
 // @desc    Get all employees
 // @route   GET /api/employees
@@ -624,5 +644,299 @@ router.get('/managers/list', protect, async (req, res) => {
     });
   }
 });
+
+// @desc    Import employees from CSV/Excel file
+// @route   POST /api/employees/import
+// @access  Private (Admin only)
+router.post('/import', protect, authorize('admin'), upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Parse the uploaded file
+    let data;
+    try {
+      if (req.file.mimetype === 'text/csv') {
+        // Parse CSV
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        data = xlsx.utils.sheet_to_json(worksheet);
+      } else {
+        // Parse Excel
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        data = xlsx.utils.sheet_to_json(worksheet);
+      }
+    } catch (parseError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to parse file. Please ensure it is a valid CSV or Excel file.'
+      });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'File is empty or contains no valid data'
+      });
+    }
+
+    // Validate required columns
+    const requiredColumns = ['Name', 'Email', 'Department', 'Role'];
+    const firstRow = data[0];
+    const missingColumns = requiredColumns.filter(col => !(col in firstRow));
+
+    if (missingColumns.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required columns: ${missingColumns.join(', ')}`
+      });
+    }
+
+    // Process employees data
+    const results = await processEmployeeData(data);
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully processed ${results.successful} employees`,
+      data: {
+        successful: results.successful,
+        failed: results.failed,
+        errors: results.errors,
+        employees: results.employees
+      }
+    });
+
+  } catch (error) {
+    console.error('Error importing employees:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while importing employees'
+    });
+  }
+});
+
+// @desc    Download sample employee template
+// @route   GET /api/employees/sample-template
+// @access  Private (Admin only)
+router.get('/sample-template', protect, authorize('admin'), async (req, res) => {
+  try {
+    const format = req.query.format || 'xlsx';
+    
+    if (format === 'csv') {
+      // Create CSV sample
+      const csvContent = 'Name,Email,Department,Role,Position,Employee ID,Phone Number,Manager Email\n' +
+                         'John Doe,john.doe@company.com,Engineering,employee,Software Developer,EMP001,+1234567890,manager@company.com\n' +
+                         'Jane Smith,jane.smith@company.com,Marketing,employee,Marketing Specialist,EMP002,+1234567891,manager@company.com\n' +
+                         'Mike Johnson,mike.johnson@company.com,HR,manager,HR Manager,EMP003,+1234567892,';
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.csv');
+      
+      return res.status(200).send(csvContent);
+    } else {
+      // Create Excel sample
+      const workbook = xlsx.utils.book_new();
+      
+      const data = [
+        { 
+          Name: 'John Doe', 
+          Email: 'john.doe@company.com', 
+          Department: 'Engineering', 
+          Role: 'employee', 
+          Position: 'Software Developer', 
+          'Employee ID': 'EMP001', 
+          'Phone Number': '+1234567890', 
+          'Manager Email': 'manager@company.com' 
+        },
+        { 
+          Name: 'Jane Smith', 
+          Email: 'jane.smith@company.com', 
+          Department: 'Marketing', 
+          Role: 'employee', 
+          Position: 'Marketing Specialist', 
+          'Employee ID': 'EMP002', 
+          'Phone Number': '+1234567891', 
+          'Manager Email': 'manager@company.com' 
+        },
+        { 
+          Name: 'Mike Johnson', 
+          Email: 'mike.johnson@company.com', 
+          Department: 'HR', 
+          Role: 'manager', 
+          Position: 'HR Manager', 
+          'Employee ID': 'EMP003', 
+          'Phone Number': '+1234567892', 
+          'Manager Email': '' 
+        }
+      ];
+      
+      const worksheet = xlsx.utils.json_to_sheet(data);
+      xlsx.utils.book_append_sheet(workbook, worksheet, 'Employees');
+      
+      const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.xlsx');
+      
+      return res.status(200).send(buffer);
+    }
+  } catch (error) {
+    console.error('Error generating sample template:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while generating sample template'
+    });
+  }
+});
+
+// Helper function to process employee data from file
+async function processEmployeeData(data) {
+  const results = {
+    successful: 0,
+    failed: 0,
+    errors: [],
+    employees: []
+  };
+
+  // Get all departments for validation
+  const departments = await Department.find({ isActive: true });
+  const departmentMap = new Map();
+  departments.forEach(dept => {
+    departmentMap.set(dept.name.toLowerCase(), dept._id);
+  });
+
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    const rowNumber = i + 1;
+
+    try {
+      // Validate required fields
+      if (!row.Name || !row.Name.trim()) {
+        results.errors.push(`Row ${rowNumber}: Name is required`);
+        results.failed++;
+        continue;
+      }
+
+      if (!row.Email || !row.Email.trim()) {
+        results.errors.push(`Row ${rowNumber}: Email is required`);
+        results.failed++;
+        continue;
+      }
+
+      if (!row.Department || !row.Department.trim()) {
+        results.errors.push(`Row ${rowNumber}: Department is required`);
+        results.failed++;
+        continue;
+      }
+
+      if (!row.Role || !row.Role.trim()) {
+        results.errors.push(`Row ${rowNumber}: Role is required`);
+        results.failed++;
+        continue;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(row.Email.trim())) {
+        results.errors.push(`Row ${rowNumber}: Invalid email format`);
+        results.failed++;
+        continue;
+      }
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ email: row.Email.trim().toLowerCase() });
+      if (existingUser) {
+        results.errors.push(`Row ${rowNumber}: User with email ${row.Email} already exists`);
+        results.failed++;
+        continue;
+      }
+
+      // Check if employee ID already exists (if provided)
+      if (row['Employee ID'] && row['Employee ID'].trim()) {
+        const existingEmployee = await User.findOne({ employeeId: row['Employee ID'].trim() });
+        if (existingEmployee) {
+          results.errors.push(`Row ${rowNumber}: Employee ID ${row['Employee ID']} already exists`);
+          results.failed++;
+          continue;
+        }
+      }
+
+      // Validate department
+      const departmentId = departmentMap.get(row.Department.trim().toLowerCase());
+      if (!departmentId) {
+        results.errors.push(`Row ${rowNumber}: Department '${row.Department}' not found`);
+        results.failed++;
+        continue;
+      }
+
+      // Validate role
+      const validRoles = ['admin', 'manager', 'employee'];
+      if (!validRoles.includes(row.Role.trim().toLowerCase())) {
+        results.errors.push(`Row ${rowNumber}: Invalid role '${row.Role}'. Must be one of: ${validRoles.join(', ')}`);
+        results.failed++;
+        continue;
+      }
+
+      // Find manager if provided
+      let managerId = null;
+      if (row['Manager Email'] && row['Manager Email'].trim()) {
+        const manager = await User.findOne({ email: row['Manager Email'].trim().toLowerCase() });
+        if (!manager) {
+          results.errors.push(`Row ${rowNumber}: Manager with email '${row['Manager Email']}' not found`);
+          results.failed++;
+          continue;
+        }
+        managerId = manager._id;
+      }
+
+      // Create employee
+      const employeeData = {
+        name: row.Name.trim(),
+        email: row.Email.trim().toLowerCase(),
+        password: 'TempPassword123!', // Temporary password - should be changed on first login
+        department: departmentId,
+        role: row.Role.trim().toLowerCase(),
+        position: row.Position ? row.Position.trim() : '',
+        employeeId: row['Employee ID'] ? row['Employee ID'].trim() : '',
+        phoneNumber: row['Phone Number'] ? row['Phone Number'].trim() : '',
+        managerId: managerId,
+        joinDate: new Date()
+      };
+
+      const employee = await User.create(employeeData);
+
+      // Update manager's direct reports if manager exists
+      if (managerId) {
+        await User.findByIdAndUpdate(
+          managerId,
+          { $addToSet: { directReports: employee._id } }
+        );
+      }
+
+      // Populate the created employee for response
+      const populatedEmployee = await User.findById(employee._id)
+        .populate('department', 'name code')
+        .populate('managerId', 'name email')
+        .select('-password');
+
+      results.employees.push(populatedEmployee);
+      results.successful++;
+
+    } catch (error) {
+      console.error(`Error processing row ${rowNumber}:`, error);
+      results.errors.push(`Row ${rowNumber}: ${error.message}`);
+      results.failed++;
+    }
+  }
+
+  return results;
+}
 
 module.exports = router;
