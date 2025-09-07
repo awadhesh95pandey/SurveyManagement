@@ -95,7 +95,39 @@ const downloadSampleTemplate = (req, res, next) => {
 // @desc    Download sample employee template
 // @route   GET /api/employees/sample-template
 // @access  Private (Admin only)
-router.get('/sample-template', protect, authorize('admin'), downloadSampleTemplate);
+router.get('/sample-template', protect, authorize('admin'), (req, res) => {
+  try {
+    console.log('Sample template route hit, format:', req.query.format);
+    const format = req.query.format || 'xlsx';
+    
+    if (format === 'csv') {
+      console.log('Generating CSV sample');
+      const csvContent = 'Name,Email,Department,Role\nJohn Doe,john@example.com,Engineering,employee';
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.csv');
+      
+      console.log('Sending CSV response');
+      return res.status(200).send(csvContent);
+    } else {
+      console.log('Generating simple Excel sample');
+      
+      // Simple test without xlsx library first
+      const testContent = 'Name,Email,Department,Role\nJohn Doe,john@example.com,Engineering,employee';
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.csv');
+      
+      console.log('Sending test response');
+      return res.status(200).send(testContent);
+    }
+  } catch (err) {
+    console.error('Error in sample template route:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Error generating sample template: ' + err.message
+    });
+  }
+});
 
 // @desc    Get all employees
 // @route   GET /api/employees
@@ -862,11 +894,6 @@ const downloadSampleTemplate = (req, res, next) => {
     next(err);
   }
 };
-
-// @desc    Download sample employee template
-// @route   GET /api/employees/sample-template
-// @access  Private (Admin only)
-router.get('/sample-template', protect, authorize('admin'), downloadSampleTemplate);
 
 // Helper function to process employee data from file
 async function processEmployeeData(data) {
