@@ -181,7 +181,7 @@ const EmployeeImport = () => {
 
   const handleDownloadSample = async (format = 'xlsx') => {
     try {
-      const result = await employeeApi.downloadSampleTemplate(format);
+      const result = await employeeApi.downloadSampleTemplateEmp(format);
       if (result.success) {
         toast.success(`Sample template downloaded as ${format}`);
       } else {

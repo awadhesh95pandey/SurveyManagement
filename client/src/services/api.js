@@ -965,7 +965,7 @@ export const employeeApi = {
   },
 
   // Download sample employee template
-  downloadSampleTemplate: async (format = 'xlsx') => {
+  downloadSampleTemplateEmp: async (format = 'xlsx') => {
     try {
       const response = await axios.get(`/api/employees/sample-template?format=${format}`, {
         responseType: 'blob'

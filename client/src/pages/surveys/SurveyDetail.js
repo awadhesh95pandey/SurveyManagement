@@ -33,6 +33,7 @@ const SurveyDetail = () => {
   }, [id]);
 
   const fetchSurvey = async () => {
+    debugger;
     setLoading(true);
     try {
       const result = await surveyApi.getSurvey(id);
@@ -109,7 +110,6 @@ const SurveyDetail = () => {
   }
 
   const surveyStatus = getSurveyStatus();
-
   return (
     <Container maxWidth="md">
       <Box sx={{ mt: 4, mb: 4 }}>
@@ -152,7 +152,7 @@ const SurveyDetail = () => {
                     Duration
                   </Typography>
                   <Typography variant="body1">
-                    {survey.noOfDays} days
+                    {survey.durationDays} days
                   </Typography>
                 </Box>
               </Box>
@@ -180,7 +180,7 @@ const SurveyDetail = () => {
                     Target Employees
                   </Typography>
                   <Typography variant="body1">
-                    {survey.employees?.length || 0} employees
+                    {survey.targetEmployees?.length || 0} employees
                   </Typography>
                 </Box>
               </Box>
