@@ -736,8 +736,9 @@ router.get('/sample-template', protect, authorize('admin'), async (req, res) => 
                          'Jane Smith,jane.smith@company.com,Marketing,employee,Marketing Specialist,EMP002,+1234567891,manager@company.com\n' +
                          'Mike Johnson,mike.johnson@company.com,HR,manager,HR Manager,EMP003,+1234567892,';
       
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.csv');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="sample_employees.csv"');
+      res.setHeader('Content-Length', Buffer.byteLength(csvContent, 'utf8'));
       
       return res.status(200).send(csvContent);
     } else {
@@ -783,7 +784,8 @@ router.get('/sample-template', protect, authorize('admin'), async (req, res) => 
       const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
       
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.xlsx');
+      res.setHeader('Content-Disposition', 'attachment; filename="sample_employees.xlsx"');
+      res.setHeader('Content-Length', buffer.length);
       
       return res.status(200).send(buffer);
     }
