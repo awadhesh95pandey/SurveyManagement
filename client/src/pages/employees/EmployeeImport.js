@@ -181,8 +181,12 @@ const EmployeeImport = () => {
 
   const handleDownloadSample = async (format = 'xlsx') => {
     try {
-      await employeeApi.downloadSampleTemplate(format);
-      toast.success(`Sample template downloaded as ${format}`);
+      const result = await employeeApi.downloadSampleTemplate(format);
+      if (result.success) {
+        toast.success(`Sample template downloaded as ${format}`);
+      } else {
+        toast.error(result.message || 'Failed to download sample template');
+      }
     } catch (error) {
       console.error('Error downloading sample template:', error);
       toast.error('Failed to download sample template');
@@ -501,4 +505,3 @@ const EmployeeImport = () => {
 };
 
 export default EmployeeImport;
-
