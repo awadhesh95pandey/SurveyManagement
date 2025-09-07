@@ -21,6 +21,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import PersonIcon from '@mui/icons-material/Person';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 
 const drawerWidth = 240;
 
@@ -47,6 +48,12 @@ const Sidebar = ({ open, toggleDrawer }) => {
       text: 'Create Survey',
       icon: <AddCircleOutlineIcon />,
       path: '/surveys/create',
+      admin: true
+    },
+    {
+      text: 'Import Employees',
+      icon: <GroupAddIcon />,
+      path: '/employees/import',
       admin: true
     },
     {

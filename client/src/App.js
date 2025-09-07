@@ -42,6 +42,9 @@ import NotificationList from './pages/notifications/NotificationList';
 // Profile Pages
 import Profile from './pages/profile/Profile';
 
+// Employee Pages
+import EmployeeImport from './pages/employees/EmployeeImport';
+
 // Auth Context and Protected Route
 import { useAuth } from './contexts/AuthContext';
 import NotFound from './pages/NotFound';
@@ -209,6 +212,16 @@ function App() {
 
           {/* Profile Routes */}
           <Route path="profile" element={<Profile />} />
+
+          {/* Employee Routes */}
+          <Route
+            path="employees/import"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <EmployeeImport />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* 404 Route */}
