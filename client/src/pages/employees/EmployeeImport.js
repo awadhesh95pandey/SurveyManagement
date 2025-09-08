@@ -141,6 +141,7 @@ const EmployeeImport = () => {
   };
 
   const handleUpload = async () => {
+    debugger
     if (!file) {
       toast.error('Please select a file to upload');
       return;
@@ -180,6 +181,7 @@ const EmployeeImport = () => {
   };
 
   const handleDownloadSample = async (format = 'xlsx') => {
+    debugger
     try {
       const result = await employeeApi.downloadSampleTemplateEmp(format);
       if (result.success) {
@@ -307,7 +309,7 @@ const EmployeeImport = () => {
                   startIcon={<DownloadIcon />}
                   fullWidth
                 >
-                  Download Sample (Excel)
+                  Download Sample (XLSX)
                 </Button>
               </Grid>
               <Grid item xs={6}>

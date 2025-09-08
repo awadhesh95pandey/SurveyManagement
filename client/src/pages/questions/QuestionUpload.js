@@ -180,6 +180,7 @@ const QuestionUpload = () => {
   };
 
   const handleDownloadSample = async (format = 'xlsx') => {
+    debugger
     try {
       await questionApi.downloadSampleTemplate(format);
       toast.success(`Sample template downloaded as ${format}`);

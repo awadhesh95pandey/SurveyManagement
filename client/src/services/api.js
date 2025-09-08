@@ -254,6 +254,7 @@ export const questionApi = {
 
   // Download sample template
   downloadSampleTemplate: async (format = 'xlsx') => {
+    debugger
     try {
       const response = await axios.get(`/api/questions/sample-template?format=${format}`, {
         responseType: 'blob'
@@ -989,6 +990,7 @@ export const employeeApi = {
 
   // Import employees from file
   importEmployees: async (formData) => {
+    debugger
     try {
       const response = await axios.post('/api/employees/import', formData, {
         headers: {
@@ -1007,6 +1009,7 @@ export const employeeApi = {
 
   // Download sample employee template
   downloadSampleTemplateEmp: async (format = 'xlsx') => {
+    debugger
     try {
       const response = await axios.get(`/api/employees/sample-template?format=${format}`, {
         responseType: 'blob'

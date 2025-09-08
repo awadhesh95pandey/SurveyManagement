@@ -102,22 +102,16 @@ const SurveyReport = () => {
   const fetchSurveyAndReport = async () => {
     setLoading(true);
     try {
-      // Fetch survey details
-      const surveyResult = await surveyApi.getSurvey(surveyId);
-      if (surveyResult.success) {
-        setSurvey(surveyResult.data);
-      } else {
-        toast.error('Failed to fetch survey details');
-        navigate('/surveys');
-        return;
-      }
-
-      // Fetch report data
+      // Fetch report data (which now includes survey info)
       const reportResult = await reportApi.generateSurveyReport(surveyId);
       if (reportResult.success) {
+        // Extract survey and report data from the new structure
+        setSurvey(reportResult.data.survey);
         setReportData(reportResult.data);
       } else {
         toast.error('Failed to generate survey report');
+        navigate('/surveys');
+        return;
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -191,8 +185,8 @@ const SurveyReport = () => {
   };
 
   const generatePieChartData = (questionData) => {
-    const labels = questionData.optionCounts.map(item => item.option);
-    const data = questionData.optionCounts.map(item => item.count);
+    const labels = Object.keys(questionData.distribution);
+    const data = Object.values(questionData.distribution);
     
     return {
       labels,
@@ -204,12 +198,16 @@ const SurveyReport = () => {
             'rgba(255, 99, 132, 0.6)',
             'rgba(255, 206, 86, 0.6)',
             'rgba(75, 192, 192, 0.6)',
+            'rgba(153, 102, 255, 0.6)',
+            'rgba(255, 159, 64, 0.6)',
           ],
           borderColor: [
             'rgba(54, 162, 235, 1)',
             'rgba(255, 99, 132, 1)',
             'rgba(255, 206, 86, 1)',
             'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)',
           ],
           borderWidth: 1,
         },
@@ -218,10 +216,27 @@ const SurveyReport = () => {
   };
 
   const generateParameterChartData = () => {
-    if (!reportData || !reportData.parameterStats) return null;
+    if (!reportData || !reportData.parameterResults) return null;
     
-    const labels = Object.keys(reportData.parameterStats);
-    const data = labels.map(param => reportData.parameterStats[param].averageScore || 0);
+    const labels = reportData.parameterResults.map(param => param.parameter);
+    const data = reportData.parameterResults.map(param => {
+      // Calculate average score for each parameter
+      let totalScore = 0;
+      let totalResponses = 0;
+      
+      param.questions.forEach(question => {
+        const options = Object.keys(question.distribution);
+        options.forEach((option, index) => {
+          const count = question.distribution[option];
+          // Assign scores (assuming 4-point scale, highest option = highest score)
+          const score = options.length - index;
+          totalScore += score * count;
+          totalResponses += count;
+        });
+      });
+      
+      return totalResponses > 0 ? totalScore / totalResponses : 0;
+    });
     
     return {
       labels,
@@ -235,6 +250,15 @@ const SurveyReport = () => {
         },
       ],
     };
+  };
+
+  const calculateDurationDays = () => {
+    if (!survey?.publishDate || !survey?.endDate) return 'N/A';
+    const start = new Date(survey.publishDate);
+    const end = new Date(survey.endDate);
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   if (loading) {
@@ -288,12 +312,12 @@ const SurveyReport = () => {
             </Grid>
             <Grid item xs={12} sm={4}>
               <Typography variant="body2" color="text.secondary">
-                Publish Date: {new Date(survey?.publishDate).toLocaleDateString()}
+                Publish Date: {survey?.publishDate ? new Date(survey.publishDate).toLocaleDateString() : 'N/A'}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
               <Typography variant="body2" color="text.secondary">
-                Duration: {survey?.durationDays} days
+                Duration: {calculateDurationDays()} days
               </Typography>
             </Grid>
           </Grid>
@@ -306,28 +330,36 @@ const SurveyReport = () => {
                 Participation Summary
               </Typography>
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={3}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Typography variant="h3" color="primary">
-                      {reportData.totalResponses}
+                      {reportData.participation?.totalAttempts || 0}
                     </Typography>
-                    <Typography variant="body1">Total Responses</Typography>
+                    <Typography variant="body1">Total Attempts</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={3}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Typography variant="h3" color="primary">
-                      {reportData.identifiedResponses}
+                    <Typography variant="h3" color="success.main">
+                      {reportData.participation?.completedAttempts || 0}
                     </Typography>
-                    <Typography variant="body1">Identified Responses</Typography>
+                    <Typography variant="body1">Completed</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={3}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Typography variant="h3" color="primary">
-                      {reportData.anonymousResponses}
+                    <Typography variant="h3" color="info.main">
+                      {reportData.participation?.identifiedUsers || 0}
                     </Typography>
-                    <Typography variant="body1">Anonymous Responses</Typography>
+                    <Typography variant="body1">Identified Users</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Box sx={{ textAlign: 'center', p: 2 }}>
+                    <Typography variant="h3" color="text.secondary">
+                      {reportData.participation?.anonymousUsers || 0}
+                    </Typography>
+                    <Typography variant="body1">Anonymous Users</Typography>
                   </Box>
                 </Grid>
               </Grid>
@@ -338,14 +370,14 @@ const SurveyReport = () => {
                 <Tabs value={tabValue} onChange={handleTabChange} aria-label="report tabs">
                   <Tab icon={<PieChartIcon />} label="Question Analysis" />
                   <Tab icon={<BarChartIcon />} label="Parameter Analysis" />
-                  <Tab icon={<GroupIcon />} label="Participant Analysis" />
+                  <Tab icon={<GroupIcon />} label="Consent Analysis" />
                   <Tab icon={<ListIcon />} label="Detailed Responses" />
                 </Tabs>
               </Box>
 
               {/* Question Analysis Tab */}
               <TabPanel value={tabValue} index={0}>
-                {reportData.questionStats.map((questionStat, index) => (
+                {reportData.questionResults?.map((questionStat, index) => (
                   <Box key={questionStat.questionId} sx={{ mb: 4 }}>
                     <Typography variant="h6" gutterBottom>
                       Question {index + 1}: {questionStat.questionText}
@@ -366,12 +398,12 @@ const SurveyReport = () => {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {questionStat.optionCounts.map((option) => (
-                                <TableRow key={option.option}>
-                                  <TableCell>{option.option}</TableCell>
-                                  <TableCell align="right">{option.count}</TableCell>
+                              {Object.entries(questionStat.distribution).map(([option, count]) => (
+                                <TableRow key={option}>
+                                  <TableCell>{option}</TableCell>
+                                  <TableCell align="right">{count}</TableCell>
                                   <TableCell align="right">
-                                    {((option.count / questionStat.totalResponses) * 100).toFixed(1)}%
+                                    {questionStat.percentages[option]?.toFixed(1) || 0}%
                                   </TableCell>
                                 </TableRow>
                               ))}
@@ -457,18 +489,18 @@ const SurveyReport = () => {
                         <TableHead>
                           <TableRow>
                             <TableCell>Parameter</TableCell>
-                            <TableCell align="right">Average Score</TableCell>
                             <TableCell align="right">Questions</TableCell>
-                            <TableCell align="right">Responses</TableCell>
+                            <TableCell align="right">Total Responses</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {Object.entries(reportData.parameterStats).map(([param, stats]) => (
-                            <TableRow key={param}>
-                              <TableCell>{param}</TableCell>
-                              <TableCell align="right">{stats.averageScore?.toFixed(2) || 'N/A'}</TableCell>
-                              <TableCell align="right">{stats.questionCount}</TableCell>
-                              <TableCell align="right">{stats.responseCount}</TableCell>
+                          {reportData.parameterResults?.map((param) => (
+                            <TableRow key={param.parameter}>
+                              <TableCell>{param.parameter}</TableCell>
+                              <TableCell align="right">{param.questions?.length || 0}</TableCell>
+                              <TableCell align="right">
+                                {param.questions?.reduce((total, q) => total + q.totalResponses, 0) || 0}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -478,14 +510,14 @@ const SurveyReport = () => {
                 </Box>
               </TabPanel>
 
-              {/* Participant Analysis Tab */}
+              {/* Consent Analysis Tab */}
               <TabPanel value={tabValue} index={2}>
                 <Box sx={{ mb: 4 }}>
                   <Typography variant="h6" gutterBottom>
-                    Participant Analysis
+                    Consent Analysis
                   </Typography>
                   <Typography variant="body2" paragraph>
-                    This section shows participation statistics for users who gave consent.
+                    This section shows consent statistics for the survey.
                   </Typography>
 
                   <Box sx={{ mb: 4 }}>
@@ -493,84 +525,46 @@ const SurveyReport = () => {
                       Consent Statistics
                     </Typography>
                     <Grid container spacing={3}>
-                      <Grid item xs={12} sm={4}>
+                      <Grid item xs={12} sm={3}>
                         <Box sx={{ textAlign: 'center', p: 2 }}>
                           <Typography variant="h3" color="primary">
-                            {reportData.consentStats?.totalUsers || 0}
+                            {reportData.consent?.totalConsents || 0}
                           </Typography>
-                          <Typography variant="body1">Total Users</Typography>
+                          <Typography variant="body1">Total Consents</Typography>
                         </Box>
                       </Grid>
-                      <Grid item xs={12} sm={4}>
+                      <Grid item xs={12} sm={3}>
                         <Box sx={{ textAlign: 'center', p: 2 }}>
                           <Typography variant="h3" color="success.main">
-                            {reportData.consentStats?.consentGiven || 0}
+                            {reportData.consent?.consentGiven || 0}
                           </Typography>
                           <Typography variant="body1">Consent Given</Typography>
                         </Box>
                       </Grid>
-                      <Grid item xs={12} sm={4}>
+                      <Grid item xs={12} sm={3}>
                         <Box sx={{ textAlign: 'center', p: 2 }}>
                           <Typography variant="h3" color="error.main">
-                            {reportData.consentStats?.consentDeclined || 0}
+                            {reportData.consent?.consentDenied || 0}
                           </Typography>
-                          <Typography variant="body1">Consent Declined</Typography>
+                          <Typography variant="body1">Consent Denied</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={3}>
+                        <Box sx={{ textAlign: 'center', p: 2 }}>
+                          <Typography variant="h3" color="warning.main">
+                            {reportData.consent?.noResponse || 0}
+                          </Typography>
+                          <Typography variant="body1">No Response</Typography>
                         </Box>
                       </Grid>
                     </Grid>
+                    
+                    <Box sx={{ mt: 3, textAlign: 'center' }}>
+                      <Typography variant="h6" color="text.secondary">
+                        Consent Rate: {reportData.consent?.consentRate || 0}%
+                      </Typography>
+                    </Box>
                   </Box>
-
-                  <Divider sx={{ my: 3 }} />
-
-                  <Typography variant="subtitle1" gutterBottom>
-                    Participant List (Consenting Users Only)
-                  </Typography>
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>User</TableCell>
-                          <TableCell>Department</TableCell>
-                          <TableCell align="center">Status</TableCell>
-                          <TableCell align="right">Responses</TableCell>
-                          <TableCell align="right">Actions</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {reportData.userStats?.length > 0 ? (
-                          reportData.userStats.map((user) => (
-                            <TableRow key={user.userId}>
-                              <TableCell>{user.userName}</TableCell>
-                              <TableCell>{user.department}</TableCell>
-                              <TableCell align="center">
-                                {user.completed ? (
-                                  <Chip label="Completed" color="success" size="small" />
-                                ) : (
-                                  <Chip label="In Progress" color="warning" size="small" />
-                                )}
-                              </TableCell>
-                              <TableCell align="right">{user.responseCount}</TableCell>
-                              <TableCell align="right">
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  onClick={() => navigate(`/reports/users/${user.userId}/surveys/${surveyId}`)}
-                                >
-                                  View Report
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={5} align="center">
-                              No consenting users found
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
                 </Box>
               </TabPanel>
 
@@ -617,7 +611,7 @@ const SurveyReport = () => {
                           <Card>
                             <CardContent sx={{ textAlign: 'center' }}>
                               <Typography variant="h4" color="primary">
-                                {detailedResponses.statistics.totalParticipants}
+                                {detailedResponses.statistics?.totalParticipants || 0}
                               </Typography>
                               <Typography variant="body2">Total Participants</Typography>
                             </CardContent>
@@ -627,7 +621,7 @@ const SurveyReport = () => {
                           <Card>
                             <CardContent sx={{ textAlign: 'center' }}>
                               <Typography variant="h4" color="success.main">
-                                {detailedResponses.statistics.completedParticipants}
+                                {detailedResponses.statistics?.completedParticipants || 0}
                               </Typography>
                               <Typography variant="body2">Completed</Typography>
                             </CardContent>
@@ -637,7 +631,7 @@ const SurveyReport = () => {
                           <Card>
                             <CardContent sx={{ textAlign: 'center' }}>
                               <Typography variant="h4" color="info.main">
-                                {detailedResponses.statistics.authenticatedParticipants}
+                                {detailedResponses.statistics?.authenticatedParticipants || 0}
                               </Typography>
                               <Typography variant="body2">Authenticated</Typography>
                             </CardContent>
@@ -647,7 +641,7 @@ const SurveyReport = () => {
                           <Card>
                             <CardContent sx={{ textAlign: 'center' }}>
                               <Typography variant="h4" color="warning.main">
-                                {detailedResponses.statistics.tokenParticipants}
+                                {detailedResponses.statistics?.tokenParticipants || 0}
                               </Typography>
                               <Typography variant="body2">Token-based</Typography>
                             </CardContent>
@@ -657,7 +651,7 @@ const SurveyReport = () => {
                           <Card>
                             <CardContent sx={{ textAlign: 'center' }}>
                               <Typography variant="h4" color="text.secondary">
-                                {detailedResponses.statistics.anonymousParticipants}
+                                {detailedResponses.statistics?.anonymousParticipants || 0}
                               </Typography>
                               <Typography variant="body2">Anonymous</Typography>
                             </CardContent>
@@ -667,32 +661,32 @@ const SurveyReport = () => {
 
                       {/* Responses List */}
                       <Box sx={{ mb: 3 }}>
-                        {detailedResponses.responses.map((participant, index) => (
-                          <Accordion key={participant.participant.id} sx={{ mb: 1 }}>
+                        {detailedResponses.responses?.map((participant, index) => (
+                          <Accordion key={participant.participant?.id || index} sx={{ mb: 1 }}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                               <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
                                   <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
                                   <Typography variant="subtitle1">
-                                    {participant.participant.name}
+                                    {participant.participant?.name || 'Anonymous'}
                                   </Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
                                   <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
                                   <Typography variant="body2" color="text.secondary">
-                                    {participant.participant.email}
+                                    {participant.participant?.email || 'N/A'}
                                   </Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
                                   <BusinessIcon sx={{ mr: 1, color: 'text.secondary' }} />
                                   <Typography variant="body2" color="text.secondary">
-                                    {participant.participant.department}
+                                    {participant.participant?.department || 'N/A'}
                                   </Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
                                   <AccessTimeIcon sx={{ mr: 1, color: 'text.secondary' }} />
                                   <Typography variant="body2" color="text.secondary">
-                                    {new Date(participant.submittedAt).toLocaleString()}
+                                    {participant.submittedAt ? new Date(participant.submittedAt).toLocaleString() : 'N/A'}
                                   </Typography>
                                 </Box>
                                 <Chip 
@@ -701,7 +695,7 @@ const SurveyReport = () => {
                                   size="small"
                                 />
                                 <Chip 
-                                  label={participant.participant.type} 
+                                  label={participant.participant?.type || 'unknown'} 
                                   variant="outlined" 
                                   size="small"
                                   sx={{ ml: 1 }}
@@ -720,34 +714,42 @@ const SurveyReport = () => {
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {participant.responses
-                                      .sort((a, b) => a.order - b.order)
-                                      .map((response) => (
-                                      <TableRow key={response.questionId}>
-                                        <TableCell>
-                                          <Typography variant="body2">
-                                            {response.questionText}
-                                          </Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Chip 
-                                            label={response.parameter || 'N/A'} 
-                                            size="small" 
-                                            variant="outlined"
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Typography variant="body2" fontWeight="medium">
-                                            {response.selectedOption}
-                                          </Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                          <Typography variant="body2" color="text.secondary">
-                                            {new Date(response.submittedAt).toLocaleString()}
-                                          </Typography>
+                                    {participant.responses?.length > 0 ? (
+                                      participant.responses
+                                        .sort((a, b) => (a.order || 0) - (b.order || 0))
+                                        .map((response, idx) => (
+                                        <TableRow key={response.questionId || idx}>
+                                          <TableCell>
+                                            <Typography variant="body2">
+                                              {response.questionText}
+                                            </Typography>
+                                          </TableCell>
+                                          <TableCell>
+                                            <Chip 
+                                              label={response.parameter || 'N/A'} 
+                                              size="small" 
+                                              variant="outlined"
+                                            />
+                                          </TableCell>
+                                          <TableCell>
+                                            <Typography variant="body2" fontWeight="medium">
+                                              {response.selectedOption}
+                                            </Typography>
+                                          </TableCell>
+                                          <TableCell>
+                                            <Typography variant="body2" color="text.secondary">
+                                              {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : 'N/A'}
+                                            </Typography>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))
+                                    ) : (
+                                      <TableRow>
+                                        <TableCell colSpan={4} align="center">
+                                          No responses available
                                         </TableCell>
                                       </TableRow>
-                                    ))}
+                                    )}
                                   </TableBody>
                                 </Table>
                               </TableContainer>
@@ -757,7 +759,7 @@ const SurveyReport = () => {
                       </Box>
 
                       {/* Pagination */}
-                      {detailedResponses.pagination.totalPages > 1 && (
+                      {detailedResponses.pagination?.totalPages > 1 && (
                         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                           <Pagination
                             count={detailedResponses.pagination.totalPages}

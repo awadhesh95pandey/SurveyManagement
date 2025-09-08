@@ -5,6 +5,7 @@ const Department = require('../models/Department');
 const { protect, authorize } = require('../middleware/auth');
 const multer = require('multer');
 const xlsx = require('xlsx');
+const csv = require('csv-parser');
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -31,26 +32,39 @@ router.get('/sample-template', protect, authorize('admin'), (req, res) => {
   try {
     console.log('Sample template route hit, format:', req.query.format);
     const format = req.query.format || 'xlsx';
-    
+
     if (format === 'csv') {
       console.log('Generating CSV sample');
-      const csvContent = 'Name,Email,Department,Role\nJohn Doe,john@example.com,Engineering,employee';
-      
+      const csvContent = 'Name,Email,Password,Department,Role\n' +
+                         'Ramesh Kumar,dotnetdev5@paisalo.in,Ramesh@123,Human Resources,Employee\n' +
+                         'Jane Smith,jane@example.com,Jane@123,Information Technology,Manager\n' +
+                         'Mike Johnson,mike@example.com,Mike@123,Finance,Employee';
+
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.csv');
       
       console.log('Sending CSV response');
       return res.status(200).send(csvContent);
     } else {
-      console.log('Generating simple Excel sample');
-      
-      // Simple test without xlsx library first
-      const testContent = 'Name,Email,Department,Role\nJohn Doe,john@example.com,Engineering,employee';
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.csv');
-      
-      console.log('Sending test response');
-      return res.status(200).send(testContent);
+      console.log('Generating Excel sample');
+      const workbook = xlsx.utils.book_new();
+
+      const data = [
+        { Name: 'Ramesh Kumar', Email: 'dotnetdev5@paisalo.in', Password: 'Ramesh@123', Department: 'Human Resources', Role: 'Employee' },
+        { Name: 'Jane Smith', Email: 'jane@example.com', Password: 'Jane@123', Department: 'Information Technology', Role: 'Manager' },
+        { Name: 'Mike Johnson', Email: 'mike@example.com', Password: 'Mike@123', Department: 'Finance', Role: 'Employee' }
+      ];
+
+      const worksheet = xlsx.utils.json_to_sheet(data);
+      xlsx.utils.book_append_sheet(workbook, worksheet, 'Employees');
+
+      const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.xlsx');
+
+      console.log('Sending Excel response');
+      return res.status(200).send(buffer);
     }
   } catch (err) {
     console.error('Error in sample template route:', err);
@@ -60,7 +74,6 @@ router.get('/sample-template', protect, authorize('admin'), (req, res) => {
     });
   }
 });
-
 // @desc    Get all employees
 // @route   GET /api/employees
 // @access  Private
@@ -725,7 +738,7 @@ router.post('/import', protect, authorize('admin'), upload.single('file'), async
     }
 
     // Validate required columns
-    const requiredColumns = ['Name', 'Email', 'Department', 'Role'];
+    const requiredColumns = ['Name', 'Email', 'Password', 'Department', 'Role'];
     const firstRow = data[0];
     const missingColumns = requiredColumns.filter(col => !(col in firstRow));
 
@@ -861,6 +874,12 @@ async function processEmployeeData(data) {
         continue;
       }
 
+      if (!row.Password || !row.Password.trim()) {
+        results.errors.push(`Row ${rowNumber}: Password is required`);
+        results.failed++;
+        continue;
+      }
+
       if (!row.Department || !row.Department.trim()) {
         results.errors.push(`Row ${rowNumber}: Department is required`);
         results.failed++;
@@ -887,16 +906,6 @@ async function processEmployeeData(data) {
         results.errors.push(`Row ${rowNumber}: User with email ${row.Email} already exists`);
         results.failed++;
         continue;
-      }
-
-      // Check if employee ID already exists (if provided)
-      if (row['Employee ID'] && row['Employee ID'].trim()) {
-        const existingEmployee = await User.findOne({ employeeId: row['Employee ID'].trim() });
-        if (existingEmployee) {
-          results.errors.push(`Row ${rowNumber}: Employee ID ${row['Employee ID']} already exists`);
-          results.failed++;
-          continue;
-        }
       }
 
       // Validate department
@@ -931,12 +940,9 @@ async function processEmployeeData(data) {
       const employeeData = {
         name: row.Name.trim(),
         email: row.Email.trim().toLowerCase(),
-        password: 'TempPassword123!', // Temporary password - should be changed on first login
+        password: 'Admin@123', // Temporary password - should be changed on first login
         department: departmentId,
         role: row.Role.trim().toLowerCase(),
-        position: row.Position ? row.Position.trim() : '',
-        employeeId: row['Employee ID'] ? row['Employee ID'].trim() : '',
-        phoneNumber: row['Phone Number'] ? row['Phone Number'].trim() : '',
         managerId: managerId,
         joinDate: new Date()
       };
