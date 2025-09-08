@@ -16,7 +16,15 @@ import {
   Grid,
   Card,
   CardContent,
-  Alert
+  Alert,
+  useTheme,
+  useMediaQuery,
+  Stack,
+  Divider,
+  alpha,
+  Fade,
+  Slide,
+  Avatar
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { consentApi, surveyApi } from '../../services/api';
@@ -36,6 +44,9 @@ const ConsentStatus = () => {
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
   const { surveyId } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
   useEffect(() => {
     fetchSurveyAndConsent();
@@ -100,12 +111,48 @@ const ConsentStatus = () => {
   };
 
   const getConsentChip = (consentGiven) => {
+    const chipSize = isMobile ? "small" : "small";
+    const iconSize = isMobile ? 16 : 18;
+    
     if (consentGiven === true) {
-      return <Chip icon={<CheckCircleIcon />} label="Consented" color="success" size="small" />;
+      return (
+        <Chip 
+          icon={<CheckCircleIcon sx={{ fontSize: iconSize }} />} 
+          label="Consented" 
+          color="success" 
+          size={chipSize}
+          sx={{ 
+            fontSize: isMobile ? '0.7rem' : '0.75rem',
+            height: isMobile ? 24 : 28
+          }}
+        />
+      );
     } else if (consentGiven === false) {
-      return <Chip icon={<CancelIcon />} label="Declined" color="error" size="small" />;
+      return (
+        <Chip 
+          icon={<CancelIcon sx={{ fontSize: iconSize }} />} 
+          label="Declined" 
+          color="error" 
+          size={chipSize}
+          sx={{ 
+            fontSize: isMobile ? '0.7rem' : '0.75rem',
+            height: isMobile ? 24 : 28
+          }}
+        />
+      );
     } else {
-      return <Chip icon={<PendingIcon />} label="Pending" color="warning" size="small" />;
+      return (
+        <Chip 
+          icon={<PendingIcon sx={{ fontSize: iconSize }} />} 
+          label="Pending" 
+          color="warning" 
+          size={chipSize}
+          sx={{ 
+            fontSize: isMobile ? '0.7rem' : '0.75rem',
+            height: isMobile ? 24 : 28
+          }}
+        />
+      );
     }
   };
 
@@ -140,112 +187,550 @@ const ConsentStatus = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Box sx={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.01)} 0%, ${alpha('#ffffff', 0.95)} 50%, ${alpha(theme.palette.secondary.main, 0.01)} 100%)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dc2626' fill-opacity='0.005'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          opacity: 0.3,
+        }
+      }}>
+        <CircularProgress size={isMobile ? 30 : 40} />
+      </Box>
     );
   }
 
   const stats = getConsentStats();
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ mt: 4, mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1">
-            Consent Management
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {isConsentPeriodActive() && (
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<EmailIcon />}
-                onClick={handleSendConsentEmails}
-                disabled={sendingEmails}
+    <Box sx={{ 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.01)} 0%, ${alpha('#ffffff', 0.95)} 50%, ${alpha(theme.palette.secondary.main, 0.01)} 100%)`,
+      position: 'relative',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dc2626' fill-opacity='0.005'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        opacity: 0.3,
+      }
+    }}>
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, py: 2 }}>
+        {/* Header Section */}
+        <Fade in timeout={800}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: isMobile ? 'flex-start' : 'center', 
+            mb: 2,
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? 2 : 0
+          }}>
+            <Box>
+              <Typography 
+                variant={isMobile ? "h5" : "h4"} 
+                component="h1"
+                sx={{ 
+                  fontWeight: 600, 
+                  fontSize: isMobile ? '1.5rem' : '2rem',
+                  color: theme.palette.text.primary,
+                  mb: 0.5
+                }}
               >
-                {sendingEmails ? 'Sending...' : 'Send Consent Emails'}
-              </Button>
-            )}
-            {stats.consented > 0 && (
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<BusinessIcon />}
-                onClick={handleSendToDepartments}
+                Consent Management
+              </Typography>
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
               >
-                Send Survey Links
-              </Button>
-            )}
+                Manage survey consent requests and track responses
+              </Typography>
+            </Box>
+            <Stack 
+              direction={isMobile ? "column" : "row"} 
+              spacing={1}
+              sx={{ width: isMobile ? '100%' : 'auto' }}
+            >
+              {isConsentPeriodActive() && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<EmailIcon />}
+                  onClick={handleSendConsentEmails}
+                  disabled={sendingEmails}
+                  size={isMobile ? "small" : "medium"}
+                  fullWidth={isMobile}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                    boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.2)}`,
+                    fontSize: isMobile ? '0.75rem' : '0.875rem',
+                    minHeight: isMobile ? 36 : 40,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                      transform: 'translateY(-1px)',
+                      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                    },
+                    transition: 'all 0.2s ease-in-out',
+                    '&:disabled': {
+                      background: theme.palette.action.disabledBackground,
+                      color: theme.palette.action.disabled,
+                      transform: 'none',
+                      boxShadow: 'none'
+                    }
+                  }}
+                >
+                  {sendingEmails ? 'Sending...' : 'Send Consent Emails'}
+                </Button>
+              )}
+              {stats.consented > 0 && (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<BusinessIcon />}
+                  onClick={handleSendToDepartments}
+                  size={isMobile ? "small" : "medium"}
+                  fullWidth={isMobile}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${theme.palette.secondary.main}, ${theme.palette.secondary.dark})`,
+                    boxShadow: `0 2px 8px ${alpha(theme.palette.secondary.main, 0.2)}`,
+                    fontSize: isMobile ? '0.75rem' : '0.875rem',
+                    minHeight: isMobile ? 36 : 40,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.secondary.dark}, ${theme.palette.secondary.main})`,
+                      transform: 'translateY(-1px)',
+                      boxShadow: `0 4px 12px ${alpha(theme.palette.secondary.main, 0.3)}`,
+                    },
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  Send Survey Links
+                </Button>
+              )}
+            </Stack>
           </Box>
-        </Box>
+        </Fade>
 
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Survey: {survey?.name}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Publish Date: {survey?.publishDate ? new Date(survey.publishDate).toLocaleDateString() : 'Not set'}
-          </Typography>
-          
-          {!isConsentPeriodActive() && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              Consent period has ended. Survey is now active or closed.
-            </Alert>
-          )}
-        </Paper>
+        {/* Survey Info Card */}
+        <Slide direction="up" in timeout={1000}>
+          <Card sx={{ 
+            mb: 2, 
+            borderRadius: 2,
+            boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+          }}>
+            <CardContent sx={{ p: isMobile ? 2 : 3, '&:last-child': { pb: isMobile ? 2 : 3 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Avatar sx={{ 
+                  bgcolor: alpha(theme.palette.info.main, 0.1), 
+                  width: 32, 
+                  height: 32, 
+                  mr: 1.5 
+                }}>
+                  <CheckCircleIcon sx={{ fontSize: 18, color: theme.palette.info.main }} />
+                </Avatar>
+                <Typography 
+                  variant={isMobile ? "subtitle1" : "h6"} 
+                  sx={{ 
+                    fontWeight: 600, 
+                    fontSize: isMobile ? '1rem' : '1.25rem' 
+                  }}
+                >
+                  Survey: {survey?.name}
+                </Typography>
+              </Box>
+              
+              <Typography 
+                variant="body2" 
+                color="text.secondary" 
+                gutterBottom
+                sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+              >
+                Publish Date: {survey?.publishDate ? new Date(survey.publishDate).toLocaleDateString() : 'Not set'}
+              </Typography>
+              
+              {!isConsentPeriodActive() && (
+                <Alert 
+                  severity="warning" 
+                  sx={{ 
+                    mt: 1.5, 
+                    borderRadius: 2,
+                    fontSize: isMobile ? '0.75rem' : '0.875rem',
+                    '& .MuiAlert-message': {
+                      fontSize: isMobile ? '0.75rem' : '0.875rem'
+                    }
+                  }}
+                >
+                  Consent period has ended. Survey is now active or closed.
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </Slide>
 
         {/* Consent Statistics */}
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Total Invitations
-                </Typography>
-                <Typography variant="h4">
-                  {stats.total}
-                </Typography>
-              </CardContent>
-            </Card>
+        <Slide direction="up" in timeout={1200}>
+          <Grid container spacing={isMobile ? 1.5 : 2} sx={{ mb: 2 }}>
+            <Grid item xs={6} sm={6} md={3}>
+              <Card sx={{ 
+                height: '100%', 
+                borderRadius: 2,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)}, ${alpha(theme.palette.primary.main, 0.12)})`,
+                boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.1)}`,
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': { 
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.15)}`
+                }
+              }}>
+                <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                    sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem', fontWeight: 500 }}
+                  >
+                    Total Invitations
+                  </Typography>
+                  <Typography 
+                    variant="h4" 
+                    sx={{ 
+                      fontSize: isMobile ? '1.5rem' : '2rem',
+                      fontWeight: 700,
+                      lineHeight: 1
+                    }}
+                  >
+                    {stats.total}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={6} md={3}>
+              <Card sx={{ 
+                height: '100%', 
+                borderRadius: 2,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.08)}, ${alpha(theme.palette.success.main, 0.12)})`,
+                boxShadow: `0 2px 8px ${alpha(theme.palette.success.main, 0.1)}`,
+                border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': { 
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 4px 20px ${alpha(theme.palette.success.main, 0.15)}`
+                }
+              }}>
+                <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                    sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem', fontWeight: 500 }}
+                  >
+                    Consented
+                  </Typography>
+                  <Typography 
+                    variant="h4" 
+                    color="success.main"
+                    sx={{ 
+                      fontSize: isMobile ? '1.5rem' : '2rem',
+                      fontWeight: 700,
+                      lineHeight: 1
+                    }}
+                  >
+                    {stats.consented}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={6} md={3}>
+              <Card sx={{ 
+                height: '100%', 
+                borderRadius: 2,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.08)}, ${alpha(theme.palette.error.main, 0.12)})`,
+                boxShadow: `0 2px 8px ${alpha(theme.palette.error.main, 0.1)}`,
+                border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': { 
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 4px 20px ${alpha(theme.palette.error.main, 0.15)}`
+                }
+              }}>
+                <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                    sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem', fontWeight: 500 }}
+                  >
+                    Declined
+                  </Typography>
+                  <Typography 
+                    variant="h4" 
+                    color="error.main"
+                    sx={{ 
+                      fontSize: isMobile ? '1.5rem' : '2rem',
+                      fontWeight: 700,
+                      lineHeight: 1
+                    }}
+                  >
+                    {stats.declined}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={6} md={3}>
+              <Card sx={{ 
+                height: '100%', 
+                borderRadius: 2,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.08)}, ${alpha(theme.palette.warning.main, 0.12)})`,
+                boxShadow: `0 2px 8px ${alpha(theme.palette.warning.main, 0.1)}`,
+                border: `1px solid ${alpha(theme.palette.warning.main, 0.1)}`,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': { 
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 4px 20px ${alpha(theme.palette.warning.main, 0.15)}`
+                }
+              }}>
+                <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                    sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem', fontWeight: 500 }}
+                  >
+                    Pending
+                  </Typography>
+                  <Typography 
+                    variant="h4" 
+                    color="warning.main"
+                    sx={{ 
+                      fontSize: isMobile ? '1.5rem' : '2rem',
+                      fontWeight: 700,
+                      lineHeight: 1
+                    }}
+                  >
+                    {stats.pending}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Consented
-                </Typography>
-                <Typography variant="h4" color="success.main">
-                  {stats.consented}
-                </Typography>
+        </Slide>
+
+        {/* Consent Details Table */}
+        {consentData.length > 0 ? (
+          <Slide direction="up" in timeout={1400}>
+            <Card sx={{ 
+              width: '100%', 
+              borderRadius: 2,
+              boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+            }}>
+              <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+                <Box sx={{ p: isMobile ? 2 : 3, pb: 0 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                    <Avatar sx={{ 
+                      bgcolor: alpha(theme.palette.primary.main, 0.1), 
+                      width: 32, 
+                      height: 32, 
+                      mr: 1.5 
+                    }}>
+                      <CheckCircleIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+                    </Avatar>
+                    <Typography 
+                      variant={isMobile ? "subtitle1" : "h6"} 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: isMobile ? '1rem' : '1.25rem' 
+                      }}
+                    >
+                      Consent Details
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                <TableContainer sx={{ 
+                  maxHeight: isMobile ? 400 : 600,
+                  '&::-webkit-scrollbar': {
+                    width: '6px',
+                    height: '6px'
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: '#f1f1f1',
+                    borderRadius: '3px'
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: '#c1c1c1',
+                    borderRadius: '3px',
+                    '&:hover': {
+                      background: '#a8a8a8'
+                    }
+                  }
+                }}>
+                  <Table stickyHeader size={isMobile ? "small" : "medium"}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600, 
+                            fontSize: isMobile ? '0.75rem' : '0.875rem',
+                            backgroundColor: theme.palette.grey[50]
+                          }}
+                        >
+                          Employee Name
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600, 
+                            fontSize: isMobile ? '0.75rem' : '0.875rem',
+                            backgroundColor: theme.palette.grey[50]
+                          }}
+                        >
+                          Email
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600, 
+                            fontSize: isMobile ? '0.75rem' : '0.875rem',
+                            backgroundColor: theme.palette.grey[50]
+                          }}
+                        >
+                          Department
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600, 
+                            fontSize: isMobile ? '0.75rem' : '0.875rem',
+                            backgroundColor: theme.palette.grey[50]
+                          }}
+                        >
+                          Status
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            fontWeight: 600, 
+                            fontSize: isMobile ? '0.75rem' : '0.875rem',
+                            backgroundColor: theme.palette.grey[50]
+                          }}
+                        >
+                          Response Date
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {consentData.map((consent) => (
+                        <TableRow 
+                          key={consent._id} 
+                          hover
+                          sx={{ 
+                            '&:hover': { 
+                              backgroundColor: theme.palette.action.hover 
+                            }
+                          }}
+                        >
+                          <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                            {consent.userId?.name || 'Unknown'}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                            {consent.userId?.email || 'Unknown'}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                            {consent.userId?.department || 'Unknown'}
+                          </TableCell>
+                          <TableCell>
+                            {getConsentChip(consent.consentGiven)}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                            {consent.consentTimestamp 
+                              ? new Date(consent.consentTimestamp).toLocaleDateString()
+                              : '-'
+                            }
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Declined
+          </Slide>
+        ) : (
+          <Slide direction="up" in timeout={1400}>
+            <Card sx={{ 
+              p: isMobile ? 3 : 4, 
+              textAlign: 'center', 
+              borderRadius: 2,
+              boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+            }}>
+              <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+                <Avatar sx={{ 
+                  bgcolor: alpha(theme.palette.warning.main, 0.1), 
+                  width: 64, 
+                  height: 64, 
+                  mx: 'auto',
+                  mb: 2
+                }}>
+                  <EmailIcon sx={{ fontSize: 32, color: theme.palette.warning.main }} />
+                </Avatar>
+                
+                <Typography 
+                  variant={isMobile ? "subtitle1" : "h6"} 
+                  gutterBottom
+                  sx={{ fontWeight: 600, fontSize: isMobile ? '1rem' : '1.25rem' }}
+                >
+                  No Consent Data Found
                 </Typography>
-                <Typography variant="h4" color="error.main">
-                  {stats.declined}
+                <Typography 
+                  variant="body1" 
+                  color="text.secondary" 
+                  paragraph
+                  sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
+                >
+                  No consent requests have been sent for this survey yet.
                 </Typography>
+                {isConsentPeriodActive() && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<EmailIcon />}
+                    onClick={handleSendConsentEmails}
+                    disabled={sendingEmails}
+                    size={isMobile ? "small" : "medium"}
+                    sx={{ 
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                      boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.2)}`,
+                      fontSize: isMobile ? '0.75rem' : '0.875rem',
+                      minHeight: isMobile ? 36 : 40,
+                      '&:hover': {
+                        background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                        transform: 'translateY(-1px)',
+                        boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                      },
+                      transition: 'all 0.2s ease-in-out',
+                      '&:disabled': {
+                        background: theme.palette.action.disabledBackground,
+                        color: theme.palette.action.disabled,
+                        transform: 'none',
+                        boxShadow: 'none'
+                      }
+                    }}
+                  >
+                    {sendingEmails ? 'Sending...' : 'Send Consent Emails'}
+                  </Button>
+                )}
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Pending
-                </Typography>
-                <Typography variant="h4" color="warning.main">
-                  {stats.pending}
-                </Typography>
-              </CardContent>
-            </Card>
+          </Slide>
           </Grid>
         </Grid>
 
@@ -304,11 +789,31 @@ const ConsentStatus = () => {
           </Paper>
         )}
 
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-start' }}>
-          <Button variant="outlined" onClick={handleBack}>
-            Back to Survey
-          </Button>
-        </Box>
+        <Slide direction="up" in timeout={1600}>
+          <Box sx={{ 
+            mt: 2, 
+            display: 'flex', 
+            justifyContent: 'flex-start' 
+          }}>
+            <Button 
+              variant="outlined" 
+              onClick={handleBack}
+              size={isMobile ? "small" : "medium"}
+              sx={{ 
+                borderColor: alpha(theme.palette.primary.main, 0.3),
+                color: theme.palette.primary.main,
+                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                minHeight: isMobile ? 36 : 40,
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                }
+              }}
+            >
+              Back to Survey
+            </Button>
+          </Box>
+        </Slide>
 
         {/* Department Survey Distribution Dialog */}
         <DepartmentSurveyDistribution
@@ -318,8 +823,8 @@ const ConsentStatus = () => {
           surveyTitle={survey?.name}
           onDistributionComplete={handleDistributionComplete}
         />
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 

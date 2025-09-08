@@ -24,7 +24,16 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  useTheme,
+  useMediaQuery,
+  alpha,
+  Fade,
+  Slide,
+  Card,
+  CardContent,
+  Stack,
+  Avatar
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { employeeApi } from '../../services/api';
@@ -45,6 +54,9 @@ const EmployeeImport = () => {
   const [error, setError] = useState(null);
   const [importResults, setImportResults] = useState(null);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -210,299 +222,808 @@ const EmployeeImport = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Box sx={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.01)} 0%, ${alpha('#ffffff', 0.95)} 50%, ${alpha(theme.palette.secondary.main, 0.01)} 100%)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dc2626' fill-opacity='0.005'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          opacity: 0.3,
+        }
+      }}>
+        <CircularProgress size={isMobile ? 30 : 40} />
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Import Employees
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Upload employees in bulk using an Excel or CSV file.
-        </Typography>
-      </Box>
-
-      <Grid container spacing={3}>
-        {/* Upload Section */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Upload Employees File
-            </Typography>
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <AlertTitle>File Format Requirements</AlertTitle>
-              <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                <li>File must be Excel (.xlsx) or CSV format</li>
-                <li>Required columns: Name, Email, Department, Role</li>
-                <li>Optional columns: Position, Employee ID, Phone Number, Manager Email</li>
-                <li>Valid roles: admin, manager, employee</li>
-                <li>Department must exist in the system</li>
-                <li>Manager Email must be an existing user's email</li>
-              </ul>
-            </Alert>
-
-            <Box sx={{ mb: 2 }}>
-              <input
-                accept=".csv,.xlsx,.xls"
-                style={{ display: 'none' }}
-                id="employee-file-upload"
-                type="file"
-                onChange={handleFileChange}
-              />
-              <label htmlFor="employee-file-upload">
-                <Button
-                  variant="outlined"
-                  component="span"
-                  startIcon={<CloudUploadIcon />}
-                  fullWidth
-                >
-                  Select File
-                </Button>
-              </label>
-              {file && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Selected file: {file.name}
-                </Typography>
-              )}
-            </Box>
-
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{error}</pre>
-              </Alert>
-            )}
-
-            <Button
-              variant="contained"
-              onClick={handleUpload}
-              disabled={!file || !!error || uploadLoading}
-              startIcon={uploadLoading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
-              fullWidth
+    <Box sx={{ 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.01)} 0%, ${alpha('#ffffff', 0.95)} 50%, ${alpha(theme.palette.secondary.main, 0.01)} 100%)`,
+      position: 'relative',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dc2626' fill-opacity='0.005'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        opacity: 0.3,
+      }
+    }}>
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, py: 2 }}>
+        {/* Header Section */}
+        <Fade in timeout={800}>
+          <Box sx={{ mb: 2 }}>
+            <Typography 
+              variant={isMobile ? "h5" : "h4"} 
+              component="h1" 
+              sx={{ 
+                fontWeight: 600, 
+                fontSize: isMobile ? '1.5rem' : '2rem',
+                mb: 0.5
+              }}
             >
-              {uploadLoading ? 'Importing...' : 'Import Employees'}
-            </Button>
-          </Paper>
-        </Grid>
-
-        {/* Sample Download Section */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Download Sample Template
+              Import Employees
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Download a sample file to see the correct format for employee import.
+            <Typography 
+              variant="body1" 
+              color="text.secondary"
+              sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
+            >
+              Upload employees in bulk using an Excel or CSV file.
             </Typography>
+          </Box>
+        </Fade>
 
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  onClick={() => handleDownloadSample('xlsx')}
-                  startIcon={<DownloadIcon />}
-                  fullWidth
-                >
-                  Download Sample (XLSX)
-                </Button>
-              </Grid>
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  onClick={() => handleDownloadSample('csv')}
-                  startIcon={<DownloadIcon />}
-                  fullWidth
-                >
-                  Download Sample (CSV)
-                </Button>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
+        <Grid container spacing={isMobile ? 2 : 3}>
+          {/* Upload Section */}
+          <Grid item xs={12} md={6}>
+            <Slide direction="up" in timeout={1000}>
+              <Card sx={{ 
+                borderRadius: 2,
+                boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                height: '100%'
+              }}>
+                <CardContent sx={{ p: isMobile ? 2 : 3, '&:last-child': { pb: isMobile ? 2 : 3 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Avatar sx={{ 
+                      bgcolor: alpha(theme.palette.primary.main, 0.1), 
+                      width: 32, 
+                      height: 32, 
+                      mr: 1.5 
+                    }}>
+                      <CloudUploadIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+                    </Avatar>
+                    <Typography 
+                      variant={isMobile ? "subtitle1" : "h6"} 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: isMobile ? '1rem' : '1.25rem' 
+                      }}
+                    >
+                      Upload Employees File
+                    </Typography>
+                  </Box>
+                  
+                  <Alert 
+                    severity="info" 
+                    sx={{ 
+                      mb: 2, 
+                      borderRadius: 2,
+                      '& .MuiAlert-message': {
+                        fontSize: isMobile ? '0.75rem' : '0.875rem'
+                      }
+                    }}
+                  >
+                    <AlertTitle sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
+                      File Format Requirements
+                    </AlertTitle>
+                    <ul style={{ margin: 0, paddingLeft: '20px', fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                      <li>File must be Excel (.xlsx) or CSV format</li>
+                      <li>Required columns: Name, Email, Department, Role</li>
+                      <li>Optional columns: Position, Employee ID, Phone Number, Manager Email</li>
+                      <li>Valid roles: admin, manager, employee</li>
+                      <li>Department must exist in the system</li>
+                      <li>Manager Email must be an existing user's email</li>
+                    </ul>
+                  </Alert>
 
-        {/* Preview Section */}
-        {previewData.length > 0 && (
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                File Preview
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                <strong>{previewData.length} employees</strong> will be imported
-              </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <input
+                      accept=".csv,.xlsx,.xls"
+                      style={{ display: 'none' }}
+                      id="employee-file-upload"
+                      type="file"
+                      onChange={handleFileChange}
+                    />
+                    <label htmlFor="employee-file-upload">
+                      <Button
+                        variant="outlined"
+                        component="span"
+                        startIcon={<CloudUploadIcon />}
+                        fullWidth
+                        size={isMobile ? "small" : "medium"}
+                        sx={{
+                          borderColor: alpha(theme.palette.primary.main, 0.3),
+                          color: theme.palette.primary.main,
+                          fontSize: isMobile ? '0.75rem' : '0.875rem',
+                          py: isMobile ? 1 : 1.5,
+                          '&:hover': {
+                            borderColor: theme.palette.primary.main,
+                            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                          }
+                        }}
+                      >
+                        Select File
+                      </Button>
+                    </label>
+                    {file && (
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          mt: 1, 
+                          fontSize: isMobile ? '0.75rem' : '0.875rem',
+                          color: 'text.secondary'
+                        }}
+                      >
+                        Selected file: {file.name}
+                      </Typography>
+                    )}
+                  </Box>
 
-              <TableContainer sx={{ maxHeight: 400 }}>
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Department</TableCell>
-                      <TableCell>Role</TableCell>
-                      <TableCell>Position</TableCell>
-                      <TableCell>Employee ID</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {previewData.map((employee, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{employee.Name}</TableCell>
-                        <TableCell>{employee.Email}</TableCell>
-                        <TableCell>{employee.Department}</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={employee.Role} 
-                            color={getRoleColor(employee.Role)}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>{employee.Position || '-'}</TableCell>
-                        <TableCell>{employee['Employee ID'] || '-'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
+                  {error && (
+                    <Alert 
+                      severity="error" 
+                      sx={{ 
+                        mb: 2, 
+                        borderRadius: 2,
+                        '& .MuiAlert-message': {
+                          fontSize: isMobile ? '0.75rem' : '0.875rem'
+                        }
+                      }}
+                    >
+                      <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>{error}</pre>
+                    </Alert>
+                  )}
+
+                  <Button
+                    variant="contained"
+                    onClick={handleUpload}
+                    disabled={!file || !!error || uploadLoading}
+                    startIcon={uploadLoading ? <CircularProgress size={isMobile ? 16 : 20} /> : <CloudUploadIcon />}
+                    fullWidth
+                    size={isMobile ? "small" : "medium"}
+                    sx={{
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                      boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.2)}`,
+                      fontSize: isMobile ? '0.75rem' : '0.875rem',
+                      py: isMobile ? 1 : 1.5,
+                      '&:hover': {
+                        background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                        transform: 'translateY(-1px)',
+                        boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                      },
+                      transition: 'all 0.2s ease-in-out',
+                      '&:disabled': {
+                        background: theme.palette.action.disabledBackground,
+                        color: theme.palette.action.disabled,
+                        transform: 'none',
+                        boxShadow: 'none'
+                      }
+                    }}
+                  >
+                    {uploadLoading ? 'Importing...' : 'Import Employees'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </Slide>
           </Grid>
-        )}
 
-        {/* Import Results Section */}
-        {importResults && (
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Import Results
-              </Typography>
-              
-              <Box sx={{ mb: 3 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
-                      <CheckCircleIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-                      <Typography variant="h4" color="success.main">
-                        {importResults.successful}
-                      </Typography>
-                      <Typography variant="body2">
-                        Successfully Imported
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
-                      <ErrorIcon sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
-                      <Typography variant="h4" color="error.main">
-                        {importResults.failed}
-                      </Typography>
-                      <Typography variant="body2">
-                        Failed to Import
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
-                      <PersonIcon sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
-                      <Typography variant="h4" color="info.main">
-                        {importResults.successful + importResults.failed}
-                      </Typography>
-                      <Typography variant="body2">
-                        Total Processed
-                      </Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {/* Errors Section */}
-              {importResults.errors && importResults.errors.length > 0 && (
-                <Accordion sx={{ mb: 2 }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="subtitle1" color="error">
-                      Import Errors ({importResults.errors.length})
+          {/* Sample Download Section */}
+          <Grid item xs={12} md={6}>
+            <Slide direction="up" in timeout={1200}>
+              <Card sx={{ 
+                borderRadius: 2,
+                boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                height: '100%'
+              }}>
+                <CardContent sx={{ p: isMobile ? 2 : 3, '&:last-child': { pb: isMobile ? 2 : 3 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Avatar sx={{ 
+                      bgcolor: alpha(theme.palette.secondary.main, 0.1), 
+                      width: 32, 
+                      height: 32, 
+                      mr: 1.5 
+                    }}>
+                      <DownloadIcon sx={{ fontSize: 18, color: theme.palette.secondary.main }} />
+                    </Avatar>
+                    <Typography 
+                      variant={isMobile ? "subtitle1" : "h6"} 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: isMobile ? '1rem' : '1.25rem' 
+                      }}
+                    >
+                      Download Sample Template
                     </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <List dense>
-                      {importResults.errors.map((error, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            <ErrorIcon color="error" />
-                          </ListItemIcon>
-                          <ListItemText primary={error} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </AccordionDetails>
-                </Accordion>
-              )}
+                  </Box>
+                  
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                      mb: 2, 
+                      fontSize: isMobile ? '0.75rem' : '0.875rem' 
+                    }}
+                  >
+                    Download a sample file to see the correct format for employee import.
+                  </Typography>
 
-              {/* Successfully Imported Employees */}
-              {importResults.employees && importResults.employees.length > 0 && (
-                <Accordion>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="subtitle1" color="success.main">
-                      Successfully Imported Employees ({importResults.employees.length})
+                  <Stack spacing={1.5}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => handleDownloadSample('xlsx')}
+                      startIcon={<DownloadIcon />}
+                      fullWidth
+                      size={isMobile ? "small" : "medium"}
+                      sx={{
+                        borderColor: alpha(theme.palette.secondary.main, 0.3),
+                        color: theme.palette.secondary.main,
+                        fontSize: isMobile ? '0.75rem' : '0.875rem',
+                        py: isMobile ? 1 : 1.5,
+                        '&:hover': {
+                          borderColor: theme.palette.secondary.main,
+                          backgroundColor: alpha(theme.palette.secondary.main, 0.04),
+                        }
+                      }}
+                    >
+                      Download Sample (XLSX)
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      onClick={() => handleDownloadSample('csv')}
+                      startIcon={<DownloadIcon />}
+                      fullWidth
+                      size={isMobile ? "small" : "medium"}
+                      sx={{
+                        borderColor: alpha(theme.palette.secondary.main, 0.3),
+                        color: theme.palette.secondary.main,
+                        fontSize: isMobile ? '0.75rem' : '0.875rem',
+                        py: isMobile ? 1 : 1.5,
+                        '&:hover': {
+                          borderColor: theme.palette.secondary.main,
+                          backgroundColor: alpha(theme.palette.secondary.main, 0.04),
+                        }
+                      }}
+                    >
+                      Download Sample (CSV)
+                    </Button>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Slide>
+          </Grid>
+
+          {/* Preview Section */}
+          {previewData.length > 0 && (
+            <Grid item xs={12}>
+              <Slide direction="up" in timeout={1400}>
+                <Card sx={{ 
+                  borderRadius: 2,
+                  boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                }}>
+                  <CardContent sx={{ p: isMobile ? 2 : 3, '&:last-child': { pb: isMobile ? 2 : 3 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Avatar sx={{ 
+                        bgcolor: alpha(theme.palette.info.main, 0.1), 
+                        width: 32, 
+                        height: 32, 
+                        mr: 1.5 
+                      }}>
+                        <PersonIcon sx={{ fontSize: 18, color: theme.palette.info.main }} />
+                      </Avatar>
+                      <Typography 
+                        variant={isMobile ? "subtitle1" : "h6"} 
+                        sx={{ 
+                          fontWeight: 600, 
+                          fontSize: isMobile ? '1rem' : '1.25rem' 
+                        }}
+                      >
+                        File Preview
+                      </Typography>
+                    </Box>
+                    
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      sx={{ 
+                        mb: 2, 
+                        fontSize: isMobile ? '0.75rem' : '0.875rem' 
+                      }}
+                    >
+                      <strong>{previewData.length} employees</strong> will be imported
                     </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <TableContainer>
-                      <Table>
+
+                    <TableContainer sx={{ 
+                      maxHeight: isMobile ? 300 : 400,
+                      borderRadius: 1,
+                      border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                      '&::-webkit-scrollbar': {
+                        width: '6px',
+                        height: '6px'
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        background: '#f1f1f1',
+                        borderRadius: '3px'
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        background: '#c1c1c1',
+                        borderRadius: '3px',
+                        '&:hover': {
+                          background: '#a8a8a8'
+                        }
+                      }
+                    }}>
+                      <Table stickyHeader size={isMobile ? "small" : "medium"}>
                         <TableHead>
                           <TableRow>
-                            <TableCell>Name</TableCell>
-                            <TableCell>Email</TableCell>
-                            <TableCell>Department</TableCell>
-                            <TableCell>Role</TableCell>
-                            <TableCell>Position</TableCell>
+                            <TableCell 
+                              sx={{ 
+                                fontWeight: 600, 
+                                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                backgroundColor: theme.palette.grey[50]
+                              }}
+                            >
+                              Name
+                            </TableCell>
+                            <TableCell 
+                              sx={{ 
+                                fontWeight: 600, 
+                                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                backgroundColor: theme.palette.grey[50]
+                              }}
+                            >
+                              Email
+                            </TableCell>
+                            <TableCell 
+                              sx={{ 
+                                fontWeight: 600, 
+                                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                backgroundColor: theme.palette.grey[50]
+                              }}
+                            >
+                              Department
+                            </TableCell>
+                            <TableCell 
+                              sx={{ 
+                                fontWeight: 600, 
+                                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                backgroundColor: theme.palette.grey[50]
+                              }}
+                            >
+                              Role
+                            </TableCell>
+                            <TableCell 
+                              sx={{ 
+                                fontWeight: 600, 
+                                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                backgroundColor: theme.palette.grey[50]
+                              }}
+                            >
+                              Position
+                            </TableCell>
+                            <TableCell 
+                              sx={{ 
+                                fontWeight: 600, 
+                                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                backgroundColor: theme.palette.grey[50]
+                              }}
+                            >
+                              Employee ID
+                            </TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {importResults.employees.map((employee, index) => (
-                            <TableRow key={index}>
-                              <TableCell>{employee.name}</TableCell>
-                              <TableCell>{employee.email}</TableCell>
-                              <TableCell>{employee.department?.name || '-'}</TableCell>
+                          {previewData.map((employee, index) => (
+                            <TableRow 
+                              key={index}
+                              sx={{ 
+                                '&:hover': { 
+                                  backgroundColor: theme.palette.action.hover 
+                                }
+                              }}
+                            >
+                              <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                {employee.Name}
+                              </TableCell>
+                              <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                {employee.Email}
+                              </TableCell>
+                              <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                {employee.Department}
+                              </TableCell>
                               <TableCell>
                                 <Chip 
-                                  label={employee.role} 
-                                  color={getRoleColor(employee.role)}
+                                  label={employee.Role} 
+                                  color={getRoleColor(employee.Role)}
                                   size="small"
+                                  sx={{ 
+                                    fontSize: isMobile ? '0.7rem' : '0.75rem',
+                                    height: isMobile ? 24 : 28
+                                  }}
                                 />
                               </TableCell>
-                              <TableCell>{employee.position || '-'}</TableCell>
+                              <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                {employee.Position || '-'}
+                              </TableCell>
+                              <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                {employee['Employee ID'] || '-'}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
                       </Table>
                     </TableContainer>
-                  </AccordionDetails>
-                </Accordion>
-              )}
+                  </CardContent>
+                </Card>
+              </Slide>
+            </Grid>
+          )}
 
-              <Box sx={{ mt: 3, textAlign: 'center' }}>
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    setImportResults(null);
-                    setPreviewData([]);
-                    setFile(null);
-                    setError(null);
-                  }}
-                >
-                  Import More Employees
-                </Button>
-              </Box>
-            </Paper>
-          </Grid>
-        )}
-      </Grid>
-    </Container>
+          {/* Import Results Section */}
+          {importResults && (
+            <Grid item xs={12}>
+              <Slide direction="up" in timeout={1600}>
+                <Card sx={{ 
+                  borderRadius: 2,
+                  boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                }}>
+                  <CardContent sx={{ p: isMobile ? 2 : 3, '&:last-child': { pb: isMobile ? 2 : 3 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Avatar sx={{ 
+                        bgcolor: alpha(theme.palette.success.main, 0.1), 
+                        width: 32, 
+                        height: 32, 
+                        mr: 1.5 
+                      }}>
+                        <CheckCircleIcon sx={{ fontSize: 18, color: theme.palette.success.main }} />
+                      </Avatar>
+                      <Typography 
+                        variant={isMobile ? "subtitle1" : "h6"} 
+                        sx={{ 
+                          fontWeight: 600, 
+                          fontSize: isMobile ? '1rem' : '1.25rem' 
+                        }}
+                      >
+                        Import Results
+                      </Typography>
+                    </Box>
+                    
+                    <Grid container spacing={isMobile ? 1.5 : 2} sx={{ mb: 2 }}>
+                      <Grid item xs={4}>
+                        <Card sx={{ 
+                          textAlign: 'center', 
+                          p: isMobile ? 1.5 : 2, 
+                          background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.08)}, ${alpha(theme.palette.success.main, 0.12)})`,
+                          borderRadius: 2,
+                          boxShadow: `0 2px 8px ${alpha(theme.palette.success.main, 0.1)}`,
+                          border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`
+                        }}>
+                          <CheckCircleIcon sx={{ 
+                            fontSize: isMobile ? 28 : 40, 
+                            color: 'success.main', 
+                            mb: 1 
+                          }} />
+                          <Typography 
+                            variant="h4" 
+                            color="success.main"
+                            sx={{ 
+                              fontSize: isMobile ? '1.5rem' : '2rem',
+                              fontWeight: 700,
+                              lineHeight: 1
+                            }}
+                          >
+                            {importResults.successful}
+                          </Typography>
+                          <Typography 
+                            variant="body2"
+                            sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem' }}
+                          >
+                            Successfully Imported
+                          </Typography>
+                        </Card>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Card sx={{ 
+                          textAlign: 'center', 
+                          p: isMobile ? 1.5 : 2, 
+                          background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.08)}, ${alpha(theme.palette.error.main, 0.12)})`,
+                          borderRadius: 2,
+                          boxShadow: `0 2px 8px ${alpha(theme.palette.error.main, 0.1)}`,
+                          border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`
+                        }}>
+                          <ErrorIcon sx={{ 
+                            fontSize: isMobile ? 28 : 40, 
+                            color: 'error.main', 
+                            mb: 1 
+                          }} />
+                          <Typography 
+                            variant="h4" 
+                            color="error.main"
+                            sx={{ 
+                              fontSize: isMobile ? '1.5rem' : '2rem',
+                              fontWeight: 700,
+                              lineHeight: 1
+                            }}
+                          >
+                            {importResults.failed}
+                          </Typography>
+                          <Typography 
+                            variant="body2"
+                            sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem' }}
+                          >
+                            Failed to Import
+                          </Typography>
+                        </Card>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Card sx={{ 
+                          textAlign: 'center', 
+                          p: isMobile ? 1.5 : 2, 
+                          background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.08)}, ${alpha(theme.palette.info.main, 0.12)})`,
+                          borderRadius: 2,
+                          boxShadow: `0 2px 8px ${alpha(theme.palette.info.main, 0.1)}`,
+                          border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`
+                        }}>
+                          <PersonIcon sx={{ 
+                            fontSize: isMobile ? 28 : 40, 
+                            color: 'info.main', 
+                            mb: 1 
+                          }} />
+                          <Typography 
+                            variant="h4" 
+                            color="info.main"
+                            sx={{ 
+                              fontSize: isMobile ? '1.5rem' : '2rem',
+                              fontWeight: 700,
+                              lineHeight: 1
+                            }}
+                          >
+                            {importResults.successful + importResults.failed}
+                          </Typography>
+                          <Typography 
+                            variant="body2"
+                            sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem' }}
+                          >
+                            Total Processed
+                          </Typography>
+                        </Card>
+                      </Grid>
+                    </Grid>
+
+                    {/* Errors Section */}
+                    {importResults.errors && importResults.errors.length > 0 && (
+                      <Accordion sx={{ mb: 2, borderRadius: 2 }}>
+                        <AccordionSummary 
+                          expandIcon={<ExpandMoreIcon />}
+                          sx={{ 
+                            borderRadius: 2,
+                            '&.Mui-expanded': {
+                              borderRadius: '8px 8px 0 0'
+                            }
+                          }}
+                        >
+                          <Typography 
+                            variant="subtitle1" 
+                            color="error"
+                            sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
+                          >
+                            Import Errors ({importResults.errors.length})
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ pt: 0 }}>
+                          <List dense>
+                            {importResults.errors.map((error, index) => (
+                              <ListItem key={index} sx={{ px: 0 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                  <ErrorIcon color="error" sx={{ fontSize: 18 }} />
+                                </ListItemIcon>
+                                <ListItemText 
+                                  primary={
+                                    <Typography sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                      {error}
+                                    </Typography>
+                                  } 
+                                />
+                              </ListItem>
+                            ))}
+                          </List>
+                        </AccordionDetails>
+                      </Accordion>
+                    )}
+
+                    {/* Successfully Imported Employees */}
+                    {importResults.employees && importResults.employees.length > 0 && (
+                      <Accordion sx={{ borderRadius: 2 }}>
+                        <AccordionSummary 
+                          expandIcon={<ExpandMoreIcon />}
+                          sx={{ 
+                            borderRadius: 2,
+                            '&.Mui-expanded': {
+                              borderRadius: '8px 8px 0 0'
+                            }
+                          }}
+                        >
+                          <Typography 
+                            variant="subtitle1" 
+                            color="success.main"
+                            sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
+                          >
+                            Successfully Imported Employees ({importResults.employees.length})
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ pt: 0 }}>
+                          <TableContainer sx={{ 
+                            borderRadius: 1,
+                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                            '&::-webkit-scrollbar': {
+                              width: '6px',
+                              height: '6px'
+                            },
+                            '&::-webkit-scrollbar-track': {
+                              background: '#f1f1f1',
+                              borderRadius: '3px'
+                            },
+                            '&::-webkit-scrollbar-thumb': {
+                              background: '#c1c1c1',
+                              borderRadius: '3px',
+                              '&:hover': {
+                                background: '#a8a8a8'
+                              }
+                            }
+                          }}>
+                            <Table size={isMobile ? "small" : "medium"}>
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell 
+                                    sx={{ 
+                                      fontWeight: 600, 
+                                      fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                      backgroundColor: theme.palette.grey[50]
+                                    }}
+                                  >
+                                    Name
+                                  </TableCell>
+                                  <TableCell 
+                                    sx={{ 
+                                      fontWeight: 600, 
+                                      fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                      backgroundColor: theme.palette.grey[50]
+                                    }}
+                                  >
+                                    Email
+                                  </TableCell>
+                                  <TableCell 
+                                    sx={{ 
+                                      fontWeight: 600, 
+                                      fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                      backgroundColor: theme.palette.grey[50]
+                                    }}
+                                  >
+                                    Department
+                                  </TableCell>
+                                  <TableCell 
+                                    sx={{ 
+                                      fontWeight: 600, 
+                                      fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                      backgroundColor: theme.palette.grey[50]
+                                    }}
+                                  >
+                                    Role
+                                  </TableCell>
+                                  <TableCell 
+                                    sx={{ 
+                                      fontWeight: 600, 
+                                      fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                      backgroundColor: theme.palette.grey[50]
+                                    }}
+                                  >
+                                    Position
+                                  </TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {importResults.employees.map((employee, index) => (
+                                  <TableRow 
+                                    key={index}
+                                    sx={{ 
+                                      '&:hover': { 
+                                        backgroundColor: theme.palette.action.hover 
+                                      }
+                                    }}
+                                  >
+                                    <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                      {employee.name}
+                                    </TableCell>
+                                    <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                      {employee.email}
+                                    </TableCell>
+                                    <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                      {employee.department?.name || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Chip 
+                                        label={employee.role} 
+                                        color={getRoleColor(employee.role)}
+                                        size="small"
+                                        sx={{ 
+                                          fontSize: isMobile ? '0.7rem' : '0.75rem',
+                                          height: isMobile ? 24 : 28
+                                        }}
+                                      />
+                                    </TableCell>
+                                    <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                      {employee.position || '-'}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </AccordionDetails>
+                      </Accordion>
+                    )}
+
+                    <Box sx={{ mt: 2, textAlign: 'center' }}>
+                      <Button
+                        variant="contained"
+                        onClick={() => {
+                          setImportResults(null);
+                          setPreviewData([]);
+                          setFile(null);
+                          setError(null);
+                        }}
+                        size={isMobile ? "small" : "medium"}
+                        sx={{
+                          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                          boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.2)}`,
+                          fontSize: isMobile ? '0.75rem' : '0.875rem',
+                          py: isMobile ? 1 : 1.5,
+                          px: 3,
+                          '&:hover': {
+                            background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                            transform: 'translateY(-1px)',
+                            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                          },
+                          transition: 'all 0.2s ease-in-out'
+                        }}
+                      >
+                        Import More Employees
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Slide>
+            </Grid>
+          )}
+        </Grid>
+      </Container>
+    </Box>
   );
 };
 
