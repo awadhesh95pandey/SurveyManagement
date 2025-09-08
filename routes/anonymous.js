@@ -27,7 +27,7 @@ router.get('/surveys/token/:token', async (req, res) => {
     const now = new Date();
     const publishDate = new Date(survey.publishDate);
     const endDate = new Date(publishDate);
-    endDate.setDate(endDate.getDate() + survey.noOfDays);
+    endDate.setDate(endDate.getDate() + survey.durationDays);
 
     if (now < publishDate) {
       return res.status(400).json({
@@ -54,7 +54,7 @@ router.get('/surveys/token/:token', async (req, res) => {
           _id: survey._id,
           name: survey.name,
           publishDate: survey.publishDate,
-          noOfDays: survey.noOfDays,
+          durationDays: survey.durationDays,
           department: survey.department
         },
         questions
@@ -183,7 +183,7 @@ router.get('/consent/:token/verify', async (req, res) => {
     // Find consent record by token
     const consent = await Consent.findOne({ consentToken: token })
       .populate('userId', 'name email department')
-      .populate('surveyId', 'name publishDate noOfDays');
+      .populate('surveyId', 'name publishDate durationDays');
 
     if (!consent) {
       return res.status(404).json({

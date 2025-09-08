@@ -418,21 +418,37 @@ exports.getUpcomingSurveys = async (req, res, next) => {
 exports.getActiveSurveys = async (req, res, next) => {
   try {
     const now = new Date();
-    
-    const surveys = await Survey.find({
+
+    const activeSurveys = await Survey.find({
+      // Only include surveys that have already been published
       publishDate: { $lte: now },
-      status: 'active'
-    }).sort({ endDate: 1 });
-    
+
+      // Dynamically calculate the end date using durationDays
+      $expr: {
+        $lte: [
+          now,
+          {
+            $add: [
+              "$publishDate",
+              { $multiply: ["$durationDays", 86400000] } // 86400000 ms = 1 day
+            ]
+          }
+        ]
+      }
+    });
+
     res.status(200).json({
       success: true,
-      count: surveys.length,
-      data: surveys
+      count: activeSurveys.length,
+      data: activeSurveys
     });
   } catch (err) {
     next(err);
   }
 };
+
+
+
 
 // @desc    Update survey status
 // @route   PUT /api/surveys/:id/status

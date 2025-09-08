@@ -32,6 +32,7 @@ export const surveyApi = {
 
   // Get active surveys
   getActiveSurveys: async () => {
+    debugger
     try {
       const response = await axios.get('/api/surveys/active');
       return { success: true, data: response.data.data };

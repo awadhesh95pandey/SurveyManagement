@@ -58,7 +58,7 @@ const SurveyDetail = () => {
     const now = new Date();
     const publishDate = new Date(survey.publishDate);
     const endDate = new Date(publishDate);
-    endDate.setDate(endDate.getDate() + survey.noOfDays);
+    endDate.setDate(endDate.getDate() + survey.durationDays);
 
     if (now < publishDate) {
       return { status: 'upcoming', label: 'Upcoming', color: 'info' };

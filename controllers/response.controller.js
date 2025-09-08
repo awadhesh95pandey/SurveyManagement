@@ -48,13 +48,25 @@ exports.startSurveyAttemptWithToken = async (req, res, next) => {
       });
     }
     
-    if (survey.status !== 'active') {
+    // if (survey.status !== 'active') {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: 'Survey is not active'
+    //   });
+    // }
+
+    const now = new Date();
+    const publishDate = new Date(survey.publishDate);
+    const endDate = new Date(publishDate);
+    endDate.setDate(endDate.getDate() + survey.durationDays);
+
+    if (now < publishDate || now > endDate) {
       return res.status(400).json({
         success: false,
-        message: 'Survey is not active'
+        message: 'Survey is not currently active'
       });
     }
-    
+ 
     // Create survey attempt
     const attempt = await SurveyAttempt.create({
       surveyId: surveyId,

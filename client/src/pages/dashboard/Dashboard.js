@@ -167,8 +167,30 @@ const Dashboard = () => {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         Department: {survey.department || 'All'}
                       </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Publish Date: {survey.publishDate 
+                          ? new Date(survey.publishDate).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              timeZone: 'Asia/Kolkata'
+                            }) 
+                          : ''}
+                      </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Closes in: {survey.noOfDays} days
+                        Closes in: {
+                          (() => {
+                            const publishDate = new Date(survey.publishDate);
+                            const endDate = new Date(publishDate);
+                            endDate.setDate(endDate.getDate() + survey.durationDays);
+
+                            const now = new Date();
+                            const diffTime = endDate - now;
+                            const remainingDays = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 0);
+
+                            return `${remainingDays} day${remainingDays !== 1 ? 's' : ''}`;
+                          })()
+                        }
                       </Typography>
                     </CardContent>
                     <Divider />

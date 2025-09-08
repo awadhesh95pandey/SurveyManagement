@@ -86,6 +86,7 @@ const TakeSurvey = () => {
   };
 
   const startSurveyWithToken = async (surveyToken) => {
+    debugger;
     try {
       setLoading(true);
       setError('');

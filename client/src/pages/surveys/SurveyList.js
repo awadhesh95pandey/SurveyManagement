@@ -138,7 +138,7 @@ const SurveyList = () => {
     const now = new Date();
     const publishDate = new Date(survey.publishDate);
     const endDate = new Date(publishDate);
-    endDate.setDate(endDate.getDate() + survey.noOfDays);
+    endDate.setDate(endDate.getDate() + survey.durationDays);
 
     if (now < publishDate) {
       return <Chip label="Upcoming" color="info" size="small" />;
@@ -196,7 +196,7 @@ const SurveyList = () => {
                         <TableCell>
                           {new Date(survey.publishDate).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>{survey.noOfDays}</TableCell>
+                        <TableCell>{survey.durationDays}</TableCell>
                         <TableCell>{getSurveyStatusChip(survey)}</TableCell>
                         <TableCell align="center">
                           <Tooltip title="View">

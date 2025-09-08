@@ -59,7 +59,7 @@ const SurveyAttempt = () => {
       const now = new Date();
       const publishDate = new Date(survey.publishDate);
       const endDate = new Date(publishDate);
-      endDate.setDate(endDate.getDate() + survey.noOfDays);
+      endDate.setDate(endDate.getDate() + survey.durationDays);
       
       if (now < publishDate) {
         toast.error('This survey is not yet active');

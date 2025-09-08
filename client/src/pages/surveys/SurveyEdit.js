@@ -58,7 +58,7 @@ const SurveyEdit = () => {
       .min(3, 'Survey name must be at least 3 characters'),
     publishDate: Yup.date()
       .required('Publish Date is required'),
-    noOfDays: Yup.number()
+    durationDays: Yup.number()
       .required('Duration is required')
       .positive('Duration must be positive')
       .integer('Duration must be a whole number'),
@@ -77,7 +77,7 @@ const SurveyEdit = () => {
     initialValues: {
       name: '',
       publishDate: null,
-      noOfDays: 7,
+      durationDays: 7,
       department: '',
       employees: []
     },
@@ -124,7 +124,7 @@ const SurveyEdit = () => {
         formik.setValues({
           name: surveyData.name || '',
           publishDate: surveyData.publishDate ? new Date(surveyData.publishDate).toISOString().split('T')[0] : null,
-          noOfDays: surveyData.noOfDays || 7,
+          durationDays: surveyData.durationDays || 7,
           department: surveyData.department || '',
           employees: surveyData.employees || []
         });
@@ -212,15 +212,15 @@ const SurveyEdit = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  id="noOfDays"
-                  name="noOfDays"
+                  id="durationDays"
+                  name="durationDays"
                   label="Duration (Days)"
                   type="number"
-                  value={formik.values.noOfDays}
+                  value={formik.values.durationDays}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched.noOfDays && Boolean(formik.errors.noOfDays)}
-                  helperText={formik.touched.noOfDays && formik.errors.noOfDays}
+                  error={formik.touched.durationDays && Boolean(formik.errors.durationDays)}
+                  helperText={formik.touched.durationDays && formik.errors.durationDays}
                   InputProps={{ inputProps: { min: 1 } }}
                 />
               </Grid>

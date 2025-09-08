@@ -191,7 +191,7 @@ const ConsentForm = () => {
               Publish Date: {new Date(consentData?.survey?.publishDate).toLocaleDateString()}
             </Typography>
             <Typography variant="body1" gutterBottom>
-              Duration: {consentData?.survey?.noOfDays} days
+              Duration: {consentData?.survey?.durationDays} days
             </Typography>
           </Box>
 

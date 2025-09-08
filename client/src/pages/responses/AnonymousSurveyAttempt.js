@@ -51,7 +51,7 @@ const AnonymousSurveyAttempt = () => {
         const now = new Date();
         const publishDate = new Date(result.data.survey.publishDate);
         const endDate = new Date(publishDate);
-        endDate.setDate(endDate.getDate() + result.data.survey.noOfDays);
+        endDate.setDate(endDate.getDate() + result.data.survey.durationDays);
 
         if (now < publishDate) {
           setError('This survey is not yet available. Please check back on the publish date.');
