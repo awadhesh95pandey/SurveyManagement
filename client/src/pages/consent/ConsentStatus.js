@@ -90,6 +90,7 @@ const ConsentStatus = () => {
   };
 
   const getConsentStats = () => {
+    debugger
     const total = consentData.length;
     const consented = consentData.filter(item => item.consentGiven === true).length;
     const declined = consentData.filter(item => item.consentGiven === false).length;
@@ -106,6 +107,13 @@ const ConsentStatus = () => {
     } else {
       return <Chip icon={<PendingIcon />} label="Pending" color="warning" size="small" />;
     }
+  };
+
+  const getDepatmentName = (departmentId) => {
+    debugger
+    if (departmentId != "" || survey) 
+      return survey.department;
+    return 'Unknown';
   };
 
   const isConsentPeriodActive = () => {
@@ -260,7 +268,7 @@ const ConsentStatus = () => {
                     <TableRow key={consent._id} hover>
                       <TableCell>{consent.userId?.name || 'Unknown'}</TableCell>
                       <TableCell>{consent.userId?.email || 'Unknown'}</TableCell>
-                      <TableCell>{consent.userId?.department || 'Unknown'}</TableCell>
+                      <TableCell>{getDepatmentName(consent.userId?.department)}</TableCell>
                       <TableCell>{getConsentChip(consent.consentGiven)}</TableCell>
                       <TableCell>
                         {consent.consentTimestamp 
