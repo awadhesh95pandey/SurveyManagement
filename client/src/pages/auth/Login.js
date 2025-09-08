@@ -223,6 +223,8 @@ const Login = () => {
                         '& .MuiInputLabel-root': {
                           color: theme.palette.text.secondary,
                           fontSize: '0.9rem',
+                          background: 'white',
+                          padding: '1px 5px',
                           '&.Mui-focused': {
                             color: theme.palette.primary.main,
                           },
@@ -304,6 +306,8 @@ const Login = () => {
                         '& .MuiInputLabel-root': {
                           color: theme.palette.text.secondary,
                           fontSize: '0.9rem',
+                          background: 'white',
+                          padding: '1px 5px',
                           '&.Mui-focused': {
                             color: theme.palette.primary.main,
                           },
@@ -415,5 +419,3 @@ const Login = () => {
 };
 
 export default Login;
-
-
