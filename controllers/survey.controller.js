@@ -399,7 +399,7 @@ exports.getUpcomingSurveys = async (req, res, next) => {
   try {
     const surveys = await Survey.find({
       publishDate: { $gt: new Date() },
-      status: { $in: ['draft', 'pending_consent'] }
+      status: { $in: ['draft', 'pending_consent', 'consented'] }
     }).sort({ publishDate: 1 });
     
     res.status(200).json({
@@ -597,6 +597,11 @@ exports.generateConsentRecords = async (req, res, next) => {
             await Consent.findByIdAndUpdate(consentRecord._id, {
               emailSent: true,
               emailSentAt: Date.now()
+            });
+
+            // Update consent record and notification
+            await Survey.findByIdAndUpdate(survey._id, {
+              consentEmailSent: true,
             });
             
             await Notification.findByIdAndUpdate(notificationRecord._id, {

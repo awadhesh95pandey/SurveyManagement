@@ -58,13 +58,18 @@ exports.recordConsent = async (req, res, next) => {
       consentRecord._id,
       {
         consentGiven: consent,
-        timestamp: Date.now()
+        consentTimestamp: Date.now()
       },
       {
         new: true,
         runValidators: true
       }
     );
+
+    // Update consent record and notification
+    await Survey.findByIdAndUpdate(survey._id, {
+      status: 'consented',
+    });
     
     // Get user info for response
     const user = await User.findById(consentRecord.userId);

@@ -61,6 +61,7 @@ export const surveyApi = {
 
   // Create a new survey
   createSurvey: async (surveyData) => {
+    debugger
     try {
       const response = await axios.post('/api/surveys', surveyData);
       return { success: true, data: response.data.data };
@@ -354,6 +355,7 @@ export const consentApi = {
 
   // Send consent emails
   sendConsentEmails: async (surveyId) => {
+    debugger
     try {
       const response = await axios.post(`/api/surveys/${surveyId}/generate-consent`);
       return { success: true, data: response.data.data };

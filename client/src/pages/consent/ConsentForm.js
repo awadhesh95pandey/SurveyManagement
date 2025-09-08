@@ -33,6 +33,7 @@ const ConsentForm = () => {
   }, [token]);
 
   const verifyToken = async () => {
+    debugger
     setLoading(true);
     try {
       const result = await consentApi.verifyConsentToken(token);
@@ -57,6 +58,7 @@ const ConsentForm = () => {
   };
 
   const handleSubmit = async () => {
+    debugger
     setSubmitting(true);
     try {
       const result = await consentApi.recordConsent(token, consent);
@@ -191,7 +193,7 @@ const ConsentForm = () => {
               Publish Date: {new Date(consentData?.survey?.publishDate).toLocaleDateString()}
             </Typography>
             <Typography variant="body1" gutterBottom>
-              Duration: {consentData?.survey?.durationDays} days
+              Valid Till: {new Date(consentData?.survey?.consentDeadline).toLocaleDateString()}
             </Typography>
           </Box>
 

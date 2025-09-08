@@ -101,6 +101,7 @@ const ConsentStatus = () => {
   };
 
   const getConsentStats = () => {
+    debugger
     const total = consentData.length;
     const consented = consentData.filter(item => item.consentGiven === true).length;
     const declined = consentData.filter(item => item.consentGiven === false).length;
@@ -153,6 +154,13 @@ const ConsentStatus = () => {
         />
       );
     }
+  };
+
+  const getDepatmentName = (departmentId) => {
+    debugger
+    if (departmentId != "" || survey) 
+      return survey.department;
+    return 'Unknown';
   };
 
   const isConsentPeriodActive = () => {
@@ -723,6 +731,62 @@ const ConsentStatus = () => {
               </CardContent>
             </Card>
           </Slide>
+          </Grid>
+        </Grid>
+
+        {/* Consent Details Table */}
+        {consentData.length > 0 ? (
+          <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+            <TableContainer sx={{ maxHeight: 600 }}>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Employee Name</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Department</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Response Date</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {consentData.map((consent) => (
+                    <TableRow key={consent._id} hover>
+                      <TableCell>{consent.userId?.name || 'Unknown'}</TableCell>
+                      <TableCell>{consent.userId?.email || 'Unknown'}</TableCell>
+                      <TableCell>{getDepatmentName(consent.userId?.department)}</TableCell>
+                      <TableCell>{getConsentChip(consent.consentGiven)}</TableCell>
+                      <TableCell>
+                        {consent.consentTimestamp 
+                          ? new Date(consent.consentTimestamp).toLocaleDateString()
+                          : '-'
+                        }
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        ) : (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h6" gutterBottom>
+              No Consent Data Found
+            </Typography>
+            <Typography variant="body1" color="text.secondary" paragraph>
+              No consent requests have been sent for this survey yet.
+            </Typography>
+            {isConsentPeriodActive() && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<EmailIcon />}
+                onClick={handleSendConsentEmails}
+                disabled={sendingEmails}
+              >
+                {sendingEmails ? 'Sending...' : 'Send Consent Emails'}
+              </Button>
+            )}
+          </Paper>
         )}
 
         <Slide direction="up" in timeout={1600}>

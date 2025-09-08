@@ -178,8 +178,8 @@ exports.deleteQuestion = async (req, res, next) => {
       });
     }
     
-    // Delete question
-    await question.remove();
+    // Delete question using findByIdAndDelete
+    await Question.findByIdAndDelete(req.params.id);
     
     // Reorder remaining questions
     const remainingQuestions = await Question.find({
