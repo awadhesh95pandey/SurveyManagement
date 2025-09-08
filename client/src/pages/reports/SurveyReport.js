@@ -16,7 +16,15 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip
+  Chip,
+  Pagination,
+  Card,
+  CardContent,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { surveyApi, reportApi } from '../../services/api';
@@ -25,6 +33,12 @@ import DownloadIcon from '@mui/icons-material/Download';
 import PieChartIcon from '@mui/icons-material/PieChart';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import GroupIcon from '@mui/icons-material/Group';
+import ListIcon from '@mui/icons-material/List';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import BusinessIcon from '@mui/icons-material/Business';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { 
   Chart as ChartJS, 
   ArcElement, 
@@ -73,7 +87,11 @@ const SurveyReport = () => {
   const [loading, setLoading] = useState(true);
   const [survey, setSurvey] = useState(null);
   const [reportData, setReportData] = useState(null);
+  const [detailedResponses, setDetailedResponses] = useState(null);
   const [tabValue, setTabValue] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loadingResponses, setLoadingResponses] = useState(false);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
   const { surveyId } = useParams();
   const navigate = useNavigate();
 
@@ -109,8 +127,34 @@ const SurveyReport = () => {
     }
   };
 
+  const fetchDetailedResponses = async (page = 1) => {
+    setLoadingResponses(true);
+    try {
+      const result = await reportApi.getDetailedSurveyResponses(surveyId, page, 20);
+      if (result.success) {
+        setDetailedResponses(result.data);
+      } else {
+        toast.error('Failed to fetch detailed responses');
+      }
+    } catch (error) {
+      console.error('Error fetching detailed responses:', error);
+      toast.error('An error occurred while fetching detailed responses');
+    } finally {
+      setLoadingResponses(false);
+    }
+  };
+
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+    // Fetch detailed responses when switching to the detailed responses tab
+    if (newValue === 3 && !detailedResponses) {
+      fetchDetailedResponses(1);
+    }
+  };
+
+  const handlePageChange = (event, page) => {
+    setCurrentPage(page);
+    fetchDetailedResponses(page);
   };
 
   const handleExport = async (format) => {
@@ -121,6 +165,25 @@ const SurveyReport = () => {
       console.error('Error exporting report:', error);
       toast.error('Failed to export report');
     }
+  };
+
+  const handleExportDetailed = async (format) => {
+    try {
+      await reportApi.exportDetailedSurveyResponses(surveyId, format);
+      toast.success(`Detailed responses exported as ${format.toUpperCase()}`);
+      setExportMenuAnchor(null);
+    } catch (error) {
+      console.error('Error exporting detailed responses:', error);
+      toast.error('Failed to export detailed responses');
+    }
+  };
+
+  const handleExportMenuOpen = (event) => {
+    setExportMenuAnchor(event.currentTarget);
+  };
+
+  const handleExportMenuClose = () => {
+    setExportMenuAnchor(null);
   };
 
   const handleBack = () => {
@@ -276,6 +339,7 @@ const SurveyReport = () => {
                   <Tab icon={<PieChartIcon />} label="Question Analysis" />
                   <Tab icon={<BarChartIcon />} label="Parameter Analysis" />
                   <Tab icon={<GroupIcon />} label="Participant Analysis" />
+                  <Tab icon={<ListIcon />} label="Detailed Responses" />
                 </Tabs>
               </Box>
 
@@ -509,6 +573,210 @@ const SurveyReport = () => {
                   </TableContainer>
                 </Box>
               </TabPanel>
+
+              {/* Detailed Responses Tab */}
+              <TabPanel value={tabValue} index={3}>
+                <Box sx={{ mb: 4 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Detailed Survey Responses
+                    </Typography>
+                    <Box>
+                      <Button
+                        variant="outlined"
+                        startIcon={<DownloadIcon />}
+                        onClick={handleExportMenuOpen}
+                        sx={{ mr: 1 }}
+                      >
+                        Export Responses
+                      </Button>
+                      <Menu
+                        anchorEl={exportMenuAnchor}
+                        open={Boolean(exportMenuAnchor)}
+                        onClose={handleExportMenuClose}
+                      >
+                        <MenuItem onClick={() => handleExportDetailed('csv')}>
+                          Export as CSV
+                        </MenuItem>
+                        <MenuItem onClick={() => handleExportDetailed('xlsx')}>
+                          Export as Excel
+                        </MenuItem>
+                      </Menu>
+                    </Box>
+                  </Box>
+
+                  {loadingResponses ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : detailedResponses ? (
+                    <>
+                      {/* Statistics Summary */}
+                      <Grid container spacing={2} sx={{ mb: 3 }}>
+                        <Grid item xs={12} sm={6} md={2.4}>
+                          <Card>
+                            <CardContent sx={{ textAlign: 'center' }}>
+                              <Typography variant="h4" color="primary">
+                                {detailedResponses.statistics.totalParticipants}
+                              </Typography>
+                              <Typography variant="body2">Total Participants</Typography>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4}>
+                          <Card>
+                            <CardContent sx={{ textAlign: 'center' }}>
+                              <Typography variant="h4" color="success.main">
+                                {detailedResponses.statistics.completedParticipants}
+                              </Typography>
+                              <Typography variant="body2">Completed</Typography>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4}>
+                          <Card>
+                            <CardContent sx={{ textAlign: 'center' }}>
+                              <Typography variant="h4" color="info.main">
+                                {detailedResponses.statistics.authenticatedParticipants}
+                              </Typography>
+                              <Typography variant="body2">Authenticated</Typography>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4}>
+                          <Card>
+                            <CardContent sx={{ textAlign: 'center' }}>
+                              <Typography variant="h4" color="warning.main">
+                                {detailedResponses.statistics.tokenParticipants}
+                              </Typography>
+                              <Typography variant="body2">Token-based</Typography>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={2.4}>
+                          <Card>
+                            <CardContent sx={{ textAlign: 'center' }}>
+                              <Typography variant="h4" color="text.secondary">
+                                {detailedResponses.statistics.anonymousParticipants}
+                              </Typography>
+                              <Typography variant="body2">Anonymous</Typography>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      </Grid>
+
+                      {/* Responses List */}
+                      <Box sx={{ mb: 3 }}>
+                        {detailedResponses.responses.map((participant, index) => (
+                          <Accordion key={participant.participant.id} sx={{ mb: 1 }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                                  <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                  <Typography variant="subtitle1">
+                                    {participant.participant.name}
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                                  <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {participant.participant.email}
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                                  <BusinessIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {participant.participant.department}
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                                  <AccessTimeIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {new Date(participant.submittedAt).toLocaleString()}
+                                  </Typography>
+                                </Box>
+                                <Chip 
+                                  label={participant.completed ? 'Completed' : 'In Progress'} 
+                                  color={participant.completed ? 'success' : 'warning'} 
+                                  size="small"
+                                />
+                                <Chip 
+                                  label={participant.participant.type} 
+                                  variant="outlined" 
+                                  size="small"
+                                  sx={{ ml: 1 }}
+                                />
+                              </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <TableContainer component={Paper} variant="outlined">
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Question</TableCell>
+                                      <TableCell>Parameter</TableCell>
+                                      <TableCell>Selected Answer</TableCell>
+                                      <TableCell>Submitted At</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {participant.responses
+                                      .sort((a, b) => a.order - b.order)
+                                      .map((response) => (
+                                      <TableRow key={response.questionId}>
+                                        <TableCell>
+                                          <Typography variant="body2">
+                                            {response.questionText}
+                                          </Typography>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Chip 
+                                            label={response.parameter || 'N/A'} 
+                                            size="small" 
+                                            variant="outlined"
+                                          />
+                                        </TableCell>
+                                        <TableCell>
+                                          <Typography variant="body2" fontWeight="medium">
+                                            {response.selectedOption}
+                                          </Typography>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Typography variant="body2" color="text.secondary">
+                                            {new Date(response.submittedAt).toLocaleString()}
+                                          </Typography>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </AccordionDetails>
+                          </Accordion>
+                        ))}
+                      </Box>
+
+                      {/* Pagination */}
+                      {detailedResponses.pagination.totalPages > 1 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                          <Pagination
+                            count={detailedResponses.pagination.totalPages}
+                            page={detailedResponses.pagination.currentPage}
+                            onChange={handlePageChange}
+                            color="primary"
+                            showFirstButton
+                            showLastButton
+                          />
+                        </Box>
+                      )}
+                    </>
+                  ) : (
+                    <Typography variant="body1" color="text.secondary" align="center">
+                      Click on this tab to load detailed responses
+                    </Typography>
+                  )}
+                </Box>
+              </TabPanel>
             </Paper>
           </>
         )}
@@ -524,4 +792,3 @@ const SurveyReport = () => {
 };
 
 export default SurveyReport;
-

@@ -585,6 +585,46 @@ export const reportApi = {
         message: error.response?.data?.message || 'Failed to export survey results' 
       };
     }
+  },
+
+  // Get detailed survey responses
+  getDetailedSurveyResponses: async (surveyId, page = 1, limit = 50) => {
+    try {
+      const response = await axios.get(`/api/reports/surveys/${surveyId}/responses?page=${page}&limit=${limit}`);
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error(`Error fetching detailed responses for survey ${surveyId}:`, error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to fetch detailed survey responses' 
+      };
+    }
+  },
+
+  // Export detailed survey responses
+  exportDetailedSurveyResponses: async (surveyId, format = 'csv') => {
+    try {
+      const response = await axios.get(`/api/reports/surveys/${surveyId}/export/detailed?format=${format}`, {
+        responseType: 'blob'
+      });
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `detailed_survey_responses.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      return { success: true };
+    } catch (error) {
+      console.error(`Error exporting detailed responses for survey ${surveyId}:`, error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to export detailed survey responses' 
+      };
+    }
   }
 };
 
