@@ -2,7 +2,9 @@ const express = require('express');
 const { 
   generateSurveyReport,
   generateUserReport,
-  exportSurveyResults
+  exportSurveyResults,
+  getDetailedSurveyResponses,
+  exportDetailedSurveyResponses
 } = require('../controllers/report.controller');
 
 const router = express.Router();
@@ -15,8 +17,13 @@ router.route('/surveys/:surveyId')
 router.route('/surveys/:surveyId/export')
   .get(protect, authorize('admin'), exportSurveyResults);
 
+router.route('/surveys/:surveyId/responses')
+  .get(protect, authorize('admin'), getDetailedSurveyResponses);
+
+router.route('/surveys/:surveyId/export/detailed')
+  .get(protect, authorize('admin'), exportDetailedSurveyResponses);
+
 router.route('/users/:userId/surveys/:surveyId')
   .get(protect, generateUserReport);
 
 module.exports = router;
-
