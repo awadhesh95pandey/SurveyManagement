@@ -218,6 +218,10 @@ const Header = ({ open, toggleDrawer }) => {
                 mt: 1,
                 overflow: 'hidden',
                 background: 'white',
+                '& .MuiList-root': {
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                }
               }
             }}
           >
@@ -339,6 +343,10 @@ const Header = ({ open, toggleDrawer }) => {
                 mt: 1,
                 overflow: 'hidden',
                 background: 'white',
+                '& .MuiList-root': {
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                }
               }
             }}
           >

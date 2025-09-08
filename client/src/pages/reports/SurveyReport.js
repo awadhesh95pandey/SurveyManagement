@@ -24,7 +24,14 @@ import {
   AccordionSummary,
   AccordionDetails,
   Menu,
-  MenuItem
+  MenuItem,
+  useTheme,
+  useMediaQuery,
+  alpha,
+  Fade,
+  Slide,
+  Avatar,
+  Stack
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { surveyApi, reportApi } from '../../services/api';
@@ -65,6 +72,8 @@ ChartJS.register(
 // Tab panel component
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
     <div
@@ -75,7 +84,7 @@ function TabPanel(props) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: isMobile ? 2 : 3 }}>
           {children}
         </Box>
       )}
@@ -94,6 +103,9 @@ const SurveyReport = () => {
   const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
   const { surveyId } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
   useEffect(() => {
     fetchSurveyAndReport();
@@ -263,185 +275,559 @@ const SurveyReport = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg">
-        <Box sx={{ mt: 4, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <CircularProgress />
-          <Typography variant="body1" sx={{ mt: 2 }}>
+      <Box sx={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.01)} 0%, ${alpha('#ffffff', 0.95)} 50%, ${alpha(theme.palette.secondary.main, 0.01)} 100%)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dc2626' fill-opacity='0.005'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          opacity: 0.3,
+        }
+      }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CircularProgress size={isMobile ? 30 : 40} />
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              mt: 2, 
+              fontSize: isMobile ? '0.875rem' : '1rem' 
+            }}
+          >
             Generating report...
           </Typography>
         </Box>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ mt: 4, mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1">
-            Survey Report
-          </Typography>
-          <Box>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleExport('pdf')}
-              sx={{ mr: 1 }}
+    <Box sx={{ 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.01)} 0%, ${alpha('#ffffff', 0.95)} 50%, ${alpha(theme.palette.secondary.main, 0.01)} 100%)`,
+      position: 'relative',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dc2626' fill-opacity='0.005'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        opacity: 0.3,
+      }
+    }}>
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, py: 2 }}>
+        {/* Header Section */}
+        <Fade in timeout={800}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: isMobile ? 'flex-start' : 'center', 
+            mb: 2,
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? 2 : 0
+          }}>
+            <Box>
+              <Typography 
+                variant={isMobile ? "h5" : "h4"} 
+                component="h1"
+                sx={{ 
+                  fontWeight: 600, 
+                  fontSize: isMobile ? '1.5rem' : '2rem',
+                  color: theme.palette.text.primary,
+                  mb: 0.5
+                }}
+              >
+                Survey Report
+              </Typography>
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
+              >
+                Comprehensive analysis and insights for survey data
+              </Typography>
+            </Box>
+            <Stack 
+              direction={isMobile ? "column" : "row"} 
+              spacing={1}
+              sx={{ width: isMobile ? '100%' : 'auto' }}
             >
-              Export PDF
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleExport('xlsx')}
-            >
-              Export Excel
-            </Button>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={() => handleExport('pdf')}
+                size={isMobile ? "small" : "medium"}
+                fullWidth={isMobile}
+                sx={{
+                  borderColor: alpha(theme.palette.primary.main, 0.3),
+                  color: theme.palette.primary.main,
+                  fontSize: isMobile ? '0.75rem' : '0.875rem',
+                  '&:hover': {
+                    borderColor: theme.palette.primary.main,
+                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                  }
+                }}
+              >
+                Export PDF
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={() => handleExport('xlsx')}
+                size={isMobile ? "small" : "medium"}
+                fullWidth={isMobile}
+                sx={{
+                  borderColor: alpha(theme.palette.secondary.main, 0.3),
+                  color: theme.palette.secondary.main,
+                  fontSize: isMobile ? '0.75rem' : '0.875rem',
+                  '&:hover': {
+                    borderColor: theme.palette.secondary.main,
+                    backgroundColor: alpha(theme.palette.secondary.main, 0.04),
+                  }
+                }}
+              >
+                Export Excel
+              </Button>
+            </Stack>
           </Box>
-        </Box>
+        </Fade>
 
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h5" gutterBottom>
-            {survey?.name}
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="body2" color="text.secondary">
-                Department: {survey?.department || 'All'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="body2" color="text.secondary">
-                Publish Date: {survey?.publishDate ? new Date(survey.publishDate).toLocaleDateString() : 'N/A'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="body2" color="text.secondary">
-                Duration: {calculateDurationDays()} days
-              </Typography>
-            </Grid>
-          </Grid>
-        </Paper>
+        {/* Survey Info Card */}
+        <Slide direction="up" in timeout={1000}>
+          <Card sx={{ 
+            mb: 2, 
+            borderRadius: 2,
+            boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+          }}>
+            <CardContent sx={{ p: isMobile ? 2 : 3, '&:last-child': { pb: isMobile ? 2 : 3 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Avatar sx={{ 
+                  bgcolor: alpha(theme.palette.info.main, 0.1), 
+                  width: 32, 
+                  height: 32, 
+                  mr: 1.5 
+                }}>
+                  <PieChartIcon sx={{ fontSize: 18, color: theme.palette.info.main }} />
+                </Avatar>
+                <Typography 
+                  variant={isMobile ? "subtitle1" : "h6"} 
+                  sx={{ 
+                    fontWeight: 600, 
+                    fontSize: isMobile ? '1rem' : '1.25rem' 
+                  }}
+                >
+                  {survey?.name}
+                </Typography>
+              </Box>
+              
+              <Grid container spacing={isMobile ? 1 : 2}>
+                <Grid item xs={12} sm={4}>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                  >
+                    Department: {survey?.department || 'All'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                  >
+                    Publish Date: {survey?.publishDate ? new Date(survey.publishDate).toLocaleDateString() : 'N/A'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                  >
+                    Duration: {calculateDurationDays()} days
+                  </Typography>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Slide>
 
         {reportData && (
           <>
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Participation Summary
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Typography variant="h3" color="primary">
-                      {reportData.participation?.totalAttempts || 0}
+            {/* Participation Summary */}
+            <Slide direction="up" in timeout={1200}>
+              <Card sx={{ 
+                mb: 2, 
+                borderRadius: 2,
+                boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+              }}>
+                <CardContent sx={{ p: isMobile ? 2 : 3, '&:last-child': { pb: isMobile ? 2 : 3 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Avatar sx={{ 
+                      bgcolor: alpha(theme.palette.primary.main, 0.1), 
+                      width: 32, 
+                      height: 32, 
+                      mr: 1.5 
+                    }}>
+                      <GroupIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+                    </Avatar>
+                    <Typography 
+                      variant={isMobile ? "subtitle1" : "h6"} 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: isMobile ? '1rem' : '1.25rem' 
+                      }}
+                    >
+                      Participation Summary
                     </Typography>
-                    <Typography variant="body1">Total Attempts</Typography>
                   </Box>
-                </Grid>
-                <Grid item xs={12} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Typography variant="h3" color="success.main">
-                      {reportData.participation?.completedAttempts || 0}
-                    </Typography>
-                    <Typography variant="body1">Completed</Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Typography variant="h3" color="info.main">
-                      {reportData.participation?.identifiedUsers || 0}
-                    </Typography>
-                    <Typography variant="body1">Identified Users</Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={3}>
-                  <Box sx={{ textAlign: 'center', p: 2 }}>
-                    <Typography variant="h3" color="text.secondary">
-                      {reportData.participation?.anonymousUsers || 0}
-                    </Typography>
-                    <Typography variant="body1">Anonymous Users</Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Paper>
-
-            <Paper sx={{ mb: 3 }}>
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs value={tabValue} onChange={handleTabChange} aria-label="report tabs">
-                  <Tab icon={<PieChartIcon />} label="Question Analysis" />
-                  <Tab icon={<BarChartIcon />} label="Parameter Analysis" />
-                  <Tab icon={<GroupIcon />} label="Consent Analysis" />
-                  <Tab icon={<ListIcon />} label="Detailed Responses" />
-                </Tabs>
-              </Box>
-
-              {/* Question Analysis Tab */}
-              <TabPanel value={tabValue} index={0}>
-                {reportData.questionResults?.map((questionStat, index) => (
-                  <Box key={questionStat.questionId} sx={{ mb: 4 }}>
-                    <Typography variant="h6" gutterBottom>
-                      Question {index + 1}: {questionStat.questionText}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Parameter: {questionStat.parameter}
-                    </Typography>
-                    <Divider sx={{ my: 2 }} />
-                    <Grid container spacing={3}>
-                      <Grid item xs={12} md={6}>
-                        <TableContainer component={Paper} variant="outlined">
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>Option</TableCell>
-                                <TableCell align="right">Responses</TableCell>
-                                <TableCell align="right">Percentage</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {Object.entries(questionStat.distribution).map(([option, count]) => (
-                                <TableRow key={option}>
-                                  <TableCell>{option}</TableCell>
-                                  <TableCell align="right">{count}</TableCell>
-                                  <TableCell align="right">
-                                    {questionStat.percentages[option]?.toFixed(1) || 0}%
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                              <TableRow>
-                                <TableCell><strong>Total</strong></TableCell>
-                                <TableCell align="right"><strong>{questionStat.totalResponses}</strong></TableCell>
-                                <TableCell align="right"><strong>100%</strong></TableCell>
-                              </TableRow>
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <Box sx={{ height: 300, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                          {questionStat.totalResponses > 0 ? (
-                            <Pie 
-                              data={generatePieChartData(questionStat)} 
-                              options={{
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                  legend: {
-                                    position: 'bottom',
-                                  },
-                                },
-                              }}
-                            />
-                          ) : (
-                            <Typography variant="body1" color="text.secondary">
-                              No data available for this question
-                            </Typography>
-                          )}
-                        </Box>
-                      </Grid>
+                  
+                  <Grid container spacing={isMobile ? 1.5 : 2}>
+                    <Grid item xs={6} sm={3}>
+                      <Card sx={{ 
+                        textAlign: 'center', 
+                        p: isMobile ? 1.5 : 2, 
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)}, ${alpha(theme.palette.primary.main, 0.12)})`,
+                        borderRadius: 2,
+                        boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.1)}`,
+                        border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
+                      }}>
+                        <Typography 
+                          variant="h4" 
+                          color="primary"
+                          sx={{ 
+                            fontSize: isMobile ? '1.5rem' : '2rem',
+                            fontWeight: 700,
+                            lineHeight: 1
+                          }}
+                        >
+                          {reportData.participation?.totalAttempts || 0}
+                        </Typography>
+                        <Typography 
+                          variant="body2"
+                          sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem' }}
+                        >
+                          Total Attempts
+                        </Typography>
+                      </Card>
                     </Grid>
-                  </Box>
-                ))}
-              </TabPanel>
+                    <Grid item xs={6} sm={3}>
+                      <Card sx={{ 
+                        textAlign: 'center', 
+                        p: isMobile ? 1.5 : 2, 
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.08)}, ${alpha(theme.palette.success.main, 0.12)})`,
+                        borderRadius: 2,
+                        boxShadow: `0 2px 8px ${alpha(theme.palette.success.main, 0.1)}`,
+                        border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`
+                      }}>
+                        <Typography 
+                          variant="h4" 
+                          color="success.main"
+                          sx={{ 
+                            fontSize: isMobile ? '1.5rem' : '2rem',
+                            fontWeight: 700,
+                            lineHeight: 1
+                          }}
+                        >
+                          {reportData.participation?.completedAttempts || 0}
+                        </Typography>
+                        <Typography 
+                          variant="body2"
+                          sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem' }}
+                        >
+                          Completed
+                        </Typography>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                      <Card sx={{ 
+                        textAlign: 'center', 
+                        p: isMobile ? 1.5 : 2, 
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.08)}, ${alpha(theme.palette.info.main, 0.12)})`,
+                        borderRadius: 2,
+                        boxShadow: `0 2px 8px ${alpha(theme.palette.info.main, 0.1)}`,
+                        border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`
+                      }}>
+                        <Typography 
+                          variant="h4" 
+                          color="info.main"
+                          sx={{ 
+                            fontSize: isMobile ? '1.5rem' : '2rem',
+                            fontWeight: 700,
+                            lineHeight: 1
+                          }}
+                        >
+                          {reportData.participation?.identifiedUsers || 0}
+                        </Typography>
+                        <Typography 
+                          variant="body2"
+                          sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem' }}
+                        >
+                          Identified Users
+                        </Typography>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                      <Card sx={{ 
+                        textAlign: 'center', 
+                        p: isMobile ? 1.5 : 2, 
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.grey[500], 0.08)}, ${alpha(theme.palette.grey[500], 0.12)})`,
+                        borderRadius: 2,
+                        boxShadow: `0 2px 8px ${alpha(theme.palette.grey[500], 0.1)}`,
+                        border: `1px solid ${alpha(theme.palette.grey[500], 0.1)}`
+                      }}>
+                        <Typography 
+                          variant="h4" 
+                          color="text.secondary"
+                          sx={{ 
+                            fontSize: isMobile ? '1.5rem' : '2rem',
+                            fontWeight: 700,
+                            lineHeight: 1
+                          }}
+                        >
+                          {reportData.participation?.anonymousUsers || 0}
+                        </Typography>
+                        <Typography 
+                          variant="body2"
+                          sx={{ fontSize: isMobile ? '0.7rem' : '0.875rem' }}
+                        >
+                          Anonymous Users
+                        </Typography>
+                      </Card>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Slide>
+
+            {/* Tabs Section */}
+            <Slide direction="up" in timeout={1400}>
+              <Card sx={{ 
+                mb: 2, 
+                borderRadius: 2,
+                boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.08)}`,
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+              }}>
+                <Box sx={{ 
+                  borderBottom: 1, 
+                  borderColor: 'divider',
+                  '& .MuiTabs-root': {
+                    minHeight: isMobile ? 48 : 64
+                  },
+                  '& .MuiTab-root': {
+                    fontSize: isMobile ? '0.75rem' : '0.875rem',
+                    minHeight: isMobile ? 48 : 64,
+                    '&.Mui-selected': {
+                      color: theme.palette.primary.main
+                    }
+                  }
+                }}>
+                  <Tabs 
+                    value={tabValue} 
+                    onChange={handleTabChange} 
+                    aria-label="report tabs"
+                    variant={isMobile ? "scrollable" : "standard"}
+                    scrollButtons={isMobile ? "auto" : false}
+                  >
+                    <Tab 
+                      icon={<PieChartIcon sx={{ fontSize: isMobile ? 18 : 20 }} />} 
+                      label="Question Analysis" 
+                    />
+                    <Tab 
+                      icon={<BarChartIcon sx={{ fontSize: isMobile ? 18 : 20 }} />} 
+                      label="Parameter Analysis" 
+                    />
+                    <Tab 
+                      icon={<GroupIcon sx={{ fontSize: isMobile ? 18 : 20 }} />} 
+                      label="Consent Analysis" 
+                    />
+                    <Tab 
+                      icon={<ListIcon sx={{ fontSize: isMobile ? 18 : 20 }} />} 
+                      label="Detailed Responses" 
+                    />
+                  </Tabs>
+                </Box>
+
+                {/* Question Analysis Tab */}
+                <TabPanel value={tabValue} index={0}>
+                  {reportData.questionResults?.map((questionStat, index) => (
+                    <Card key={questionStat.questionId} sx={{ 
+                      mb: 2, 
+                      borderRadius: 2,
+                      boxShadow: `0 2px 8px ${alpha(theme.palette.common.black, 0.06)}`,
+                      border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                    }}>
+                      <CardContent sx={{ p: isMobile ? 2 : 3, '&:last-child': { pb: isMobile ? 2 : 3 } }}>
+                        <Typography 
+                          variant={isMobile ? "subtitle1" : "h6"} 
+                          gutterBottom
+                          sx={{ 
+                            fontWeight: 600, 
+                            fontSize: isMobile ? '1rem' : '1.25rem' 
+                          }}
+                        >
+                          Question {index + 1}: {questionStat.questionText}
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          gutterBottom
+                          sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                        >
+                          Parameter: {questionStat.parameter}
+                        </Typography>
+                        <Divider sx={{ my: 2 }} />
+                        <Grid container spacing={isMobile ? 2 : 3}>
+                          <Grid item xs={12} md={6}>
+                            <TableContainer 
+                              component={Paper} 
+                              variant="outlined"
+                              sx={{ 
+                                borderRadius: 2,
+                                '&::-webkit-scrollbar': {
+                                  width: '6px',
+                                  height: '6px'
+                                },
+                                '&::-webkit-scrollbar-track': {
+                                  background: '#f1f1f1',
+                                  borderRadius: '3px'
+                                },
+                                '&::-webkit-scrollbar-thumb': {
+                                  background: '#c1c1c1',
+                                  borderRadius: '3px',
+                                  '&:hover': {
+                                    background: '#a8a8a8'
+                                  }
+                                }
+                              }}
+                            >
+                              <Table size={isMobile ? "small" : "medium"}>
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell 
+                                      sx={{ 
+                                        fontWeight: 600, 
+                                        fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                        backgroundColor: theme.palette.grey[50]
+                                      }}
+                                    >
+                                      Option
+                                    </TableCell>
+                                    <TableCell 
+                                      align="right"
+                                      sx={{ 
+                                        fontWeight: 600, 
+                                        fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                        backgroundColor: theme.palette.grey[50]
+                                      }}
+                                    >
+                                      Responses
+                                    </TableCell>
+                                    <TableCell 
+                                      align="right"
+                                      sx={{ 
+                                        fontWeight: 600, 
+                                        fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                        backgroundColor: theme.palette.grey[50]
+                                      }}
+                                    >
+                                      Percentage
+                                    </TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {Object.entries(questionStat.distribution).map(([option, count]) => (
+                                    <TableRow 
+                                      key={option}
+                                      sx={{ 
+                                        '&:hover': { 
+                                          backgroundColor: theme.palette.action.hover 
+                                        }
+                                      }}
+                                    >
+                                      <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                        {option}
+                                      </TableCell>
+                                      <TableCell align="right" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                        {count}
+                                      </TableCell>
+                                      <TableCell align="right" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                        {questionStat.percentages[option]?.toFixed(1) || 0}%
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                  <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04) }}>
+                                    <TableCell sx={{ fontWeight: 600, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                      <strong>Total</strong>
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 600, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                      <strong>{questionStat.totalResponses}</strong>
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 600, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                      <strong>100%</strong>
+                                    </TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <Box sx={{ 
+                              height: isMobile ? 250 : 300, 
+                              display: 'flex', 
+                              justifyContent: 'center', 
+                              alignItems: 'center',
+                              borderRadius: 2,
+                              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                              backgroundColor: alpha(theme.palette.background.paper, 0.5)
+                            }}>
+                              {questionStat.totalResponses > 0 ? (
+                                <Pie 
+                                  data={generatePieChartData(questionStat)} 
+                                  options={{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                      legend: {
+                                        position: 'bottom',
+                                        labels: {
+                                          font: {
+                                            size: isMobile ? 10 : 12
+                                          }
+                                        }
+                                      },
+                                    },
+                                  }}
+                                />
+                              ) : (
+                                <Typography 
+                                  variant="body1" 
+                                  color="text.secondary"
+                                  sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
+                                >
+                                  No data available for this question
+                                </Typography>
+                              )}
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </TabPanel>
 
               {/* Parameter Analysis Tab */}
               <TabPanel value={tabValue} index={1}>
@@ -779,17 +1165,38 @@ const SurveyReport = () => {
                   )}
                 </Box>
               </TabPanel>
-            </Paper>
+              </Card>
+            </Slide>
           </>
         )}
 
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-start' }}>
-          <Button variant="outlined" onClick={handleBack}>
-            Back to Surveys
-          </Button>
-        </Box>
-      </Box>
-    </Container>
+        <Slide direction="up" in timeout={1600}>
+          <Box sx={{ 
+            mt: 2, 
+            display: 'flex', 
+            justifyContent: 'flex-start' 
+          }}>
+            <Button 
+              variant="outlined" 
+              onClick={handleBack}
+              size={isMobile ? "small" : "medium"}
+              sx={{ 
+                borderColor: alpha(theme.palette.primary.main, 0.3),
+                color: theme.palette.primary.main,
+                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                minHeight: isMobile ? 36 : 40,
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                }
+              }}
+            >
+              Back to Surveys
+            </Button>
+          </Box>
+        </Slide>
+      </Container>
+    </Box>
   );
 };
 
