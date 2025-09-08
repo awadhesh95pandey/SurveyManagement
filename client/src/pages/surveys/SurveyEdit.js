@@ -18,36 +18,20 @@ import {
   Chip
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
-import { surveyApi } from '../../services/api';
+import { surveyApi, departmentApi, employeeApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-
-// Mock data for departments and employees
-const departments = [
-  'Human Resources',
-  'Finance',
-  'Information Technology',
-  'Marketing',
-  'Operations',
-  'Sales',
-  'Research & Development',
-  'Customer Support',
-  'All Departments'
-];
-
-const employees = [
-  { id: '1', name: 'John Doe', email: 'john.doe@example.com', department: 'Human Resources' },
-  { id: '2', name: 'Jane Smith', email: 'jane.smith@example.com', department: 'Finance' },
-  { id: '3', name: 'Robert Johnson', email: 'robert.johnson@example.com', department: 'Information Technology' },
-  { id: '4', name: 'Emily Davis', email: 'emily.davis@example.com', department: 'Marketing' },
-  { id: '5', name: 'Michael Wilson', email: 'michael.wilson@example.com', department: 'Operations' }
-];
 
 const SurveyEdit = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [survey, setSurvey] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -64,7 +48,7 @@ const SurveyEdit = () => {
       .integer('Duration must be a whole number'),
     department: Yup.string()
       .required('Department is required'),
-    employees: Yup.array()
+    targetEmployees: Yup.array()
       .when('department', {
         is: 'All Departments',
         then: (schema) => schema,
@@ -79,7 +63,7 @@ const SurveyEdit = () => {
       publishDate: null,
       durationDays: 7,
       department: '',
-      employees: []
+      targetEmployees: []
     },
     validationSchema: validationSchema,
     onSubmit: async (values) => {
@@ -89,7 +73,7 @@ const SurveyEdit = () => {
         const surveyData = {
           ...values,
           publishDate: values.publishDate ? new Date(values.publishDate).toISOString() : null,
-          employees: values.employees.map(emp => emp.id)
+          targetEmployees: values.targetEmployees.map(emp => emp.id)
         };
 
         const result = await surveyApi.updateSurvey(id, surveyData);
@@ -109,8 +93,92 @@ const SurveyEdit = () => {
   });
 
   useEffect(() => {
+    fetchDepartments();
     fetchSurvey();
   }, [id]);
+
+  // Fetch employees when department changes
+  useEffect(() => {
+    if (formik.values.department && formik.values.department !== 'All Departments') {
+      fetchEmployees(formik.values.department);
+    } else if (formik.values.department === 'All Departments') {
+      fetchEmployees();
+    }
+  }, [formik.values.department]);
+
+  // Fetch departments function
+  const fetchDepartments = async () => {
+    setLoadingDepartments(true);
+    try {
+      const result = await departmentApi.getDepartments();
+      if (result.success) {
+        // Add "All Departments" option
+        const departmentOptions = [
+          ...result.data.map(dept => dept.name),
+          'All Departments'
+        ];
+        setDepartments(departmentOptions);
+      } else {
+        toast.error(result.message || 'Failed to fetch departments');
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      toast.error('Failed to fetch departments');
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  // Fetch employees function
+  const fetchEmployees = async (department = null) => {
+    setLoadingEmployees(true);
+    try {
+      const params = department && department !== 'All Departments' ? { department } : {};
+      const result = await employeeApi.getEmployees(params);
+      if (result.success) {
+        const employeeData = result.data.map(emp => ({
+          id: emp._id,
+          name: emp.name,
+          email: emp.email,
+          department: emp.department?.name || 'No Department',
+          role: emp.role
+        }));
+        setEmployees(employeeData);
+        setFilteredEmployees(employeeData);
+      } else {
+        toast.error(result.message || 'Failed to fetch employees');
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      toast.error('Failed to fetch employees');
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  // Fetch selected employees by IDs (for edit mode)
+  const fetchSelectedEmployees = async (employeeIds) => {
+    if (!employeeIds || employeeIds.length === 0) return [];
+    
+    try {
+      const result = await employeeApi.getEmployees();
+      if (result.success) {
+        const selectedEmployees = result.data
+          .filter(emp => employeeIds.includes(emp._id))
+          .map(emp => ({
+            id: emp._id,
+            name: emp.name,
+            email: emp.email,
+            department: emp.department?.name || 'No Department',
+            role: emp.role
+          }));
+        return selectedEmployees;
+      }
+    } catch (error) {
+      console.error('Error fetching selected employees:', error);
+    }
+    return [];
+  };
 
   const fetchSurvey = async () => {
     setLoading(true);
@@ -120,13 +188,16 @@ const SurveyEdit = () => {
         const surveyData = result.data;
         setSurvey(surveyData);
         
+        // Fetch selected employees if they exist
+        const selectedEmployees = await fetchSelectedEmployees(surveyData.targetEmployees || []);
+        
         // Populate form with existing data
         formik.setValues({
           name: surveyData.name || '',
           publishDate: surveyData.publishDate ? new Date(surveyData.publishDate).toISOString().split('T')[0] : null,
           durationDays: surveyData.durationDays || 7,
           department: surveyData.department || '',
-          employees: surveyData.employees || []
+          targetEmployees: selectedEmployees
         });
       } else {
         toast.error('Failed to fetch survey details');
@@ -141,10 +212,7 @@ const SurveyEdit = () => {
     }
   };
 
-  // Filter employees based on selected department
-  const filteredEmployees = formik.values.department === 'All Departments'
-    ? employees
-    : employees.filter(emp => emp.department === formik.values.department);
+  // Filter employees based on selected department (already handled in fetchEmployees)
 
   const handleCancel = () => {
     navigate(`/surveys/${id}`);
@@ -237,18 +305,26 @@ const SurveyEdit = () => {
                     name="department"
                     value={formik.values.department}
                     label="Target Department"
+                    disabled={loadingDepartments}
                     onChange={(e) => {
                       formik.setFieldValue('department', e.target.value);
                       // Reset employees when department changes
-                      formik.setFieldValue('employees', []);
+                      formik.setFieldValue('targetEmployees', []);
                     }}
                     onBlur={formik.handleBlur}
                   >
-                    {departments.map((dept) => (
-                      <MenuItem key={dept} value={dept}>
-                        {dept}
+                    {loadingDepartments ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        Loading departments...
                       </MenuItem>
-                    ))}
+                    ) : (
+                      departments.map((dept) => (
+                        <MenuItem key={dept} value={dept}>
+                          {dept}
+                        </MenuItem>
+                      ))
+                    )}
                   </Select>
                   {formik.touched.department && formik.errors.department && (
                     <FormHelperText>{formik.errors.department}</FormHelperText>
@@ -260,17 +336,19 @@ const SurveyEdit = () => {
                 <Grid item xs={12}>
                   <Autocomplete
                     multiple
-                    id="employees"
+                    id="targetEmployees"
                     options={filteredEmployees}
-                    getOptionLabel={(option) => `${option.name} (${option.email})`}
-                    value={formik.values.employees}
+                    getOptionLabel={(option) => `${option.name} (${option.email}) - ${option.department}`}
+                    value={formik.values.targetEmployees}
                     onChange={(event, newValue) => {
-                      formik.setFieldValue('employees', newValue);
+                      formik.setFieldValue('targetEmployees', newValue);
                     }}
+                    loading={loadingEmployees}
+                    disabled={loadingEmployees}
                     renderTags={(value, getTagProps) =>
                       value.map((option, index) => (
                         <Chip
-                          label={option.name}
+                          label={`${option.name} - ${option.department}`}
                           {...getTagProps({ index })}
                           key={option.id}
                         />
@@ -280,9 +358,9 @@ const SurveyEdit = () => {
                       <TextField
                         {...params}
                         label="Target Employees"
-                        placeholder="Select employees"
-                        error={formik.touched.employees && Boolean(formik.errors.employees)}
-                        helperText={formik.touched.employees && formik.errors.employees}
+                        placeholder={loadingEmployees ? "Loading employees..." : "Select employees for the survey"}
+                        error={formik.touched.targetEmployees && Boolean(formik.errors.targetEmployees)}
+                        helperText={formik.touched.targetEmployees && formik.errors.targetEmployees}
                       />
                     )}
                   />
@@ -317,4 +395,3 @@ const SurveyEdit = () => {
 };
 
 export default SurveyEdit;
-
