@@ -65,11 +65,11 @@ const SurveyCreate = () => {
       .integer('Duration must be a whole number'),
     department: Yup.string()
       .required('Department is required'),
-    targetEmployees: Yup.array()
+    targetEmployee: Yup.string()
       .when('department', {
         is: 'All Departments',
         then: (schema) => schema,
-        otherwise: (schema) => schema.min(1, 'Select at least one employee')
+        otherwise: (schema) => schema.required('Select an employee')
       })
   });
 
@@ -80,7 +80,7 @@ const SurveyCreate = () => {
       publishDate: null,
       durationDays: 7,
       department: '',
-      targetEmployees: []
+      targetEmployee: ''
     },
     validationSchema: validationSchema,
     onSubmit: async (values) => {
@@ -91,7 +91,7 @@ const SurveyCreate = () => {
         const surveyData = {
           ...values,
           publishDate: values.publishDate ? values.publishDate.toISOString() : null,
-          targetEmployees: values.targetEmployees.map(emp => emp.id)
+          targetEmployees: values.targetEmployee ? [values.targetEmployee] : []
         };
 
         const result = await surveyApi.createSurvey(surveyData);
@@ -436,7 +436,7 @@ const SurveyCreate = () => {
                         label="Target Department"
                         onChange={(e) => {
                           formik.setFieldValue('department', e.target.value);
-                          formik.setFieldValue('targetEmployees', []);
+                          formik.setFieldValue('targetEmployee', '');
                         }}
                         onBlur={formik.handleBlur}
                         disabled={loadingDepartments}
@@ -486,70 +486,68 @@ const SurveyCreate = () => {
                           Target Employees
                         </Typography>
                       </Box>
-                      <Autocomplete
-                        multiple
-                        id="targetEmployees"
-                        options={filteredEmployees}
-                        getOptionLabel={(option) => `${option.name} (${option.email}) - ${option.department}`}
-                        value={formik.values.targetEmployees}
-                        onChange={(event, newValue) => {
-                          formik.setFieldValue('targetEmployees', newValue);
+                      <FormControl 
+                        fullWidth
+                        error={formik.touched.targetEmployee && Boolean(formik.errors.targetEmployee)}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            backgroundColor: 'white !important',
+                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                              borderColor: theme.palette.primary.main,
+                              borderWidth: 2,
+                            },
+                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                              borderColor: theme.palette.primary.main,
+                              borderWidth: 2,
+                            },
+                          },
+                          '& .MuiInputLabel-root': {
+                            fontSize: '0.9rem',
+                          },
+                          '& .MuiFormHelperText-root': {
+                            fontSize: '0.75rem',
+                          },
                         }}
-                        loading={loadingEmployees}
-                        disabled={loadingEmployees}
-                        renderTags={(value, getTagProps) =>
-                          value.map((option, index) => (
-                            <Chip
-                              label={`${option.name} - ${option.department}`}
-                              {...getTagProps({ index })}
-                              key={option.id}
-                              size="small"
-                              sx={{ fontSize: '0.75rem', height: 24 }}
-                            />
-                          ))
-                        }
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Target Employees"
-                            placeholder={loadingEmployees ? "Loading employees..." : "Select employees for the survey"}
-                            error={formik.touched.targetEmployees && Boolean(formik.errors.targetEmployees)}
-                            helperText={formik.touched.targetEmployees && formik.errors.targetEmployees}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                borderRadius: 2,
-                                backgroundColor: 'white !important',
-                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: theme.palette.primary.main,
-                                  borderWidth: 2,
-                                },
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: theme.palette.primary.main,
-                                  borderWidth: 2,
-                                },
-                              },
-                              '& .MuiInputBase-input': {
-                                fontSize: '0.9rem',
-                              },
-                              '& .MuiInputLabel-root': {
-                                fontSize: '0.9rem',
-                              },
-                              '& .MuiFormHelperText-root': {
-                                fontSize: '0.75rem',
-                              },
-                            }}
-                            InputProps={{
-                              ...params.InputProps,
-                              endAdornment: (
-                                <>
-                                  {loadingEmployees ? <CircularProgress color="inherit" size={16} /> : null}
-                                  {params.InputProps.endAdornment}
-                                </>
-                              ),
-                            }}
-                          />
+                      >
+                        <InputLabel id="targetEmployee-label">Target Employee</InputLabel>
+                        <Select
+                          labelId="targetEmployee-label"
+                          id="targetEmployee"
+                          name="targetEmployee"
+                          value={formik.values.targetEmployee}
+                          label="Target Employee"
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          disabled={loadingEmployees}
+                          sx={{
+                            '& .MuiSelect-select': {
+                              fontSize: '0.9rem',
+                            },
+                          }}
+                        >
+                          {loadingEmployees ? (
+                            <MenuItem disabled>
+                              <CircularProgress size={16} sx={{ mr: 1 }} />
+                              <Typography sx={{ fontSize: '0.8rem' }}>Loading employees...</Typography>
+                            </MenuItem>
+                          ) : (
+                            [
+                              <MenuItem key="none" value="" sx={{ fontSize: '0.9rem' }}>
+                                Select an employee
+                              </MenuItem>,
+                              ...filteredEmployees.map((emp) => (
+                                <MenuItem key={emp.id} value={emp.id} sx={{ fontSize: '0.9rem' }}>
+                                  {emp.name} ({emp.email}) - {emp.department}
+                                </MenuItem>
+                              ))
+                            ]
+                          )}
+                        </Select>
+                        {formik.touched.targetEmployee && formik.errors.targetEmployee && (
+                          <FormHelperText>{formik.errors.targetEmployee}</FormHelperText>
                         )}
-                      />
+                      </FormControl>
                     </Grid>
                   )}
                 </Grid>
