@@ -85,7 +85,7 @@ const EmployeeImport = () => {
 
         // Check if the file has the required columns
         const requiredColumns = ['Name', 'Email', 'Department', 'Role'];
-        const optionalColumns = ['Manager Email', 'Position', 'Employee ID', 'Phone Number'];
+        const optionalColumns = ['Manager Email', 'Direct Reports', 'Position', 'Employee ID', 'Phone Number'];
         const firstRow = jsonData[0];
         const missingColumns = requiredColumns.filter(col => !(col in firstRow));
 
@@ -142,6 +142,25 @@ const EmployeeImport = () => {
             if (!managerEmailRegex.test(row['Manager Email'].trim())) {
               errors.push(`Row ${index + 1}: Invalid manager email format`);
               return;
+            }
+          }
+
+          // Validate Direct Reports format if provided
+          if (row['Direct Reports'] && row['Direct Reports'].trim() !== '') {
+            const directReports = row['Direct Reports'].trim().split(';').map(email => email.trim()).filter(email => email);
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            for (const reportEmail of directReports) {
+              if (!emailRegex.test(reportEmail)) {
+                errors.push(`Row ${index + 1}: Invalid direct report email format: ${reportEmail}`);
+                return;
+              }
+              
+              // Check if trying to add themselves as direct report
+              if (reportEmail.toLowerCase() === row.Email.trim().toLowerCase()) {
+                errors.push(`Row ${index + 1}: Employee cannot be their own direct report`);
+                return;
+              }
             }
           }
 
@@ -343,10 +362,11 @@ const EmployeeImport = () => {
                     <ul style={{ margin: 0, paddingLeft: '20px', fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                       <li>File must be Excel (.xlsx) or CSV format</li>
                       <li>Required columns: Name, Email, Department, Role</li>
-                      <li>Optional columns: Position, Employee ID, Phone Number, Manager Email</li>
+                      <li>Optional columns: Position, Employee ID, Phone Number, Manager Email, Direct Reports</li>
                       <li>Valid roles: admin, manager, employee</li>
                       <li>Department must exist in the system</li>
                       <li>Manager Email must be an existing user's email</li>
+                      <li>Direct Reports should be semicolon-separated emails (e.g., user1@company.com;user2@company.com)</li>
                     </ul>
                   </Alert>
 
@@ -654,6 +674,15 @@ const EmployeeImport = () => {
                             >
                               Manager Email
                             </TableCell>
+                            <TableCell 
+                              sx={{ 
+                                fontWeight: 600, 
+                                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                backgroundColor: theme.palette.grey[50]
+                              }}
+                            >
+                              Direct Reports
+                            </TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -694,6 +723,9 @@ const EmployeeImport = () => {
                               </TableCell>
                               <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                                 {employee['Manager Email'] || '-'}
+                              </TableCell>
+                              <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                {employee['Direct Reports'] || '-'}
                               </TableCell>
                             </TableRow>
                           ))}
