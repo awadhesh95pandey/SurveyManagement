@@ -85,7 +85,7 @@ const EmployeeImport = () => {
 
         // Check if the file has the required columns
         const requiredColumns = ['Name', 'Email', 'Department', 'Role'];
-        const optionalColumns = ['Manager Email', 'Direct Reports', 'Position', 'Employee ID', 'Phone Number'];
+        const optionalColumns = ['Manager Email', 'Direct Reports', 'Employee ID', 'Phone Number'];
         const firstRow = jsonData[0];
         const missingColumns = requiredColumns.filter(col => !(col in firstRow));
 
@@ -362,7 +362,7 @@ const EmployeeImport = () => {
                     <ul style={{ margin: 0, paddingLeft: '20px', fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                       <li>File must be Excel (.xlsx) or CSV format</li>
                       <li>Required columns: Name, Email, Department, Role</li>
-                      <li>Optional columns: Position, Employee ID, Phone Number, Manager Email, Direct Reports</li>
+                      <li>Optional columns: Employee ID, Phone Number, Manager Email, Direct Reports</li>
                       <li>Valid roles: admin, manager, employee</li>
                       <li>Department must exist in the system</li>
                       <li>Manager Email must be an existing user's email</li>
@@ -654,15 +654,6 @@ const EmployeeImport = () => {
                                 backgroundColor: theme.palette.grey[50]
                               }}
                             >
-                              Position
-                            </TableCell>
-                            <TableCell 
-                              sx={{ 
-                                fontWeight: 600, 
-                                fontSize: isMobile ? '0.75rem' : '0.875rem',
-                                backgroundColor: theme.palette.grey[50]
-                              }}
-                            >
                               Employee ID
                             </TableCell>
                             <TableCell 
@@ -714,9 +705,6 @@ const EmployeeImport = () => {
                                     height: isMobile ? 24 : 28
                                   }}
                                 />
-                              </TableCell>
-                              <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                {employee.Position || '-'}
                               </TableCell>
                               <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                                 {employee['Employee ID'] || '-'}
@@ -989,15 +977,6 @@ const EmployeeImport = () => {
                                     }}
                                   >
                                     Role
-                                  </TableCell>
-                                  <TableCell 
-                                    sx={{ 
-                                      fontWeight: 600, 
-                                      fontSize: isMobile ? '0.75rem' : '0.875rem',
-                                      backgroundColor: theme.palette.grey[50]
-                                    }}
-                                  >
-                                    Position
                                   </TableCell>
                                 </TableRow>
                               </TableHead>

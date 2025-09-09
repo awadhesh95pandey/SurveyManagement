@@ -25,6 +25,84 @@ const upload = multer({
   }
 });
 
+// Download sample employee template function
+const downloadSampleTemplate = (req, res, next) => {
+  try {
+    const format = req.query.format || 'xlsx';
+    
+    if (format === 'csv') {
+      // Create CSV sample
+      const csvContent = 'Name,Email,Department,Role,Employee ID,Phone Number,Manager Email,Direct Reports\n' +
+                         'Awadhesh Pandey,awadheshpandey8601@gmail.com,Human Resources,manager,EMP001,+1234567890,,\n' +
+                         'Ramesh Kumar,dotnetdev5@paisalo.in,Information Technology,manager,EMP003,+1234567892,awadheshpandey8601@gmail.com,dotnetdev12@paisalo.in\n' +
+                         'Lakshya Singh,dotnetdev14@paisalo.in,Information Technology,manager,EMP004,+1234567893,,dotnetdev12@paisalo.in;dotnetdev5@paisalo.in\n' +
+                         'Sourab,dotnetdev1@paisalo.in,Human Resources,manager,EMP005,+1234567894,awadheshpandey8601@gmail.com,dotnetdev12@paisalo.in';
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.csv');
+      
+      return res.status(200).send(csvContent);
+    } else {
+      // Create Excel sample
+      const workbook = xlsx.utils.book_new();
+      
+const data = [
+  { 
+    Name: 'Awadhesh Pandey', 
+    Email: 'awadheshpandey8601@gmail.com', 
+    Department: 'Human Resources', 
+    Role: 'manager', 
+    'Employee ID': 'EMP001', 
+    'Phone Number': '+1234567890', 
+    'Manager Email': '', 
+    'Direct Reports': ''
+  },
+  { 
+    Name: 'Ramesh Kumar', 
+    Email: 'dotnetdev5@paisalo.in', 
+    Department: 'Information Technology',
+    Role: 'manager', 
+    'Employee ID': 'EMP003', 
+    'Phone Number': '+1234567892', 
+    'Manager Email': 'awadheshpandey8601@gmail.com', 
+    'Direct Reports': 'dotnetdev12@paisalo.in'
+  },
+  { 
+    Name: 'Lakshya Singh', 
+    Email: 'dotnetdev14@paisalo.in', 
+    Department: 'Information Technology', 
+    Role: 'manager', 
+    'Employee ID': 'EMP004', 
+    'Phone Number': '+1234567893', 
+    'Manager Email': '', 
+    'Direct Reports': 'dotnetdev12@paisalo.in;dotnetdev5@paisalo.in'
+  },
+  { 
+    Name: 'Sourab', 
+    Email: 'dotnetdev1@paisalo.in', 
+    Department: 'Human Resources', 
+    Role: 'manager', 
+    'Employee ID': 'EMP005', 
+    'Phone Number': '+1234567894', 
+    'Manager Email': 'awadheshpandey8601@gmail.com', 
+    'Direct Reports': 'dotnetdev12@paisalo.in'
+  }
+];      
+      const worksheet = xlsx.utils.json_to_sheet(data);
+      xlsx.utils.book_append_sheet(workbook, worksheet, 'Employees');
+      
+      const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.xlsx');
+      
+      return res.status(200).send(buffer);
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Download sample employee template
 // @route   GET /api/employees/sample-template
 // @access  Private (Admin only)
@@ -693,7 +771,7 @@ router.post('/import', protect, authorize('admin'), upload.single('file'), async
     }
 
     // Validate required columns
-    const requiredColumns = ['Name', 'Email', 'Password', 'Department', 'Role'];
+    const requiredColumns = ['Name', 'Email', 'Department', 'Role'];
     const firstRow = data[0];
     const missingColumns = requiredColumns.filter(col => !(col in firstRow));
 
@@ -726,101 +804,6 @@ router.post('/import', protect, authorize('admin'), upload.single('file'), async
     });
   }
 });
-
-// Download sample employee template function
-const downloadSampleTemplate = (req, res, next) => {
-  try {
-    const format = req.query.format || 'xlsx';
-    
-    if (format === 'csv') {
-      // Create CSV sample
-      const csvContent = 'Name,Email,Department,Role,Position,Employee ID,Phone Number,Manager Email,Direct Reports\n' +
-                         'John Doe,john.doe@company.com,Engineering,employee,Software Developer,EMP001,+1234567890,manager@company.com,\n' +
-                         'Jane Smith,jane.smith@company.com,Marketing,employee,Marketing Specialist,EMP002,+1234567891,manager@company.com,\n' +
-                         'Mike Johnson,mike.johnson@company.com,HR,manager,HR Manager,EMP003,+1234567892,,john.doe@company.com;jane.smith@company.com\n' +
-                         'Sarah Wilson,sarah.wilson@company.com,Engineering,manager,Engineering Manager,EMP004,+1234567893,,\n' +
-                         'Tom Brown,tom.brown@company.com,Marketing,manager,Marketing Manager,EMP005,+1234567894,,';
-      
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.csv');
-      
-      return res.status(200).send(csvContent);
-    } else {
-      // Create Excel sample
-      const workbook = xlsx.utils.book_new();
-      
-      const data = [
-        { 
-          Name: 'John Doe', 
-          Email: 'john.doe@company.com', 
-          Department: 'Engineering', 
-          Role: 'employee', 
-          Position: 'Software Developer', 
-          'Employee ID': 'EMP001', 
-          'Phone Number': '+1234567890', 
-          'Manager Email': 'manager@company.com',
-          'Direct Reports': ''
-        },
-        { 
-          Name: 'Jane Smith', 
-          Email: 'jane.smith@company.com', 
-          Department: 'Marketing', 
-          Role: 'employee', 
-          Position: 'Marketing Specialist', 
-          'Employee ID': 'EMP002', 
-          'Phone Number': '+1234567891', 
-          'Manager Email': 'manager@company.com',
-          'Direct Reports': ''
-        },
-        { 
-          Name: 'Mike Johnson', 
-          Email: 'mike.johnson@company.com', 
-          Department: 'HR', 
-          Role: 'manager', 
-          Position: 'HR Manager', 
-          'Employee ID': 'EMP003', 
-          'Phone Number': '+1234567892', 
-          'Manager Email': '',
-          'Direct Reports': 'john.doe@company.com;jane.smith@company.com'
-        },
-        { 
-          Name: 'Sarah Wilson', 
-          Email: 'sarah.wilson@company.com', 
-          Department: 'Engineering', 
-          Role: 'manager', 
-          Position: 'Engineering Manager', 
-          'Employee ID': 'EMP004', 
-          'Phone Number': '+1234567893', 
-          'Manager Email': '',
-          'Direct Reports': ''
-        },
-        { 
-          Name: 'Tom Brown', 
-          Email: 'tom.brown@company.com', 
-          Department: 'Marketing', 
-          Role: 'manager', 
-          Position: 'Marketing Manager', 
-          'Employee ID': 'EMP005', 
-          'Phone Number': '+1234567894', 
-          'Manager Email': '',
-          'Direct Reports': ''
-        }
-      ];
-      
-      const worksheet = xlsx.utils.json_to_sheet(data);
-      xlsx.utils.book_append_sheet(workbook, worksheet, 'Employees');
-      
-      const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-      
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.xlsx');
-      
-      return res.status(200).send(buffer);
-    }
-  } catch (err) {
-    next(err);
-  }
-};
 
 // Helper function to check for circular manager relationships
 async function checkCircularRelationship(employeeEmail, managerEmail, allData) {
@@ -895,12 +878,6 @@ async function processEmployeeData(data) {
 
       if (!row.Email || !row.Email.trim()) {
         results.errors.push(`Row ${rowNumber}: Email is required`);
-        results.failed++;
-        continue;
-      }
-
-      if (!row.Password || !row.Password.trim()) {
-        results.errors.push(`Row ${rowNumber}: Password is required`);
         results.failed++;
         continue;
       }
