@@ -85,6 +85,7 @@ const EmployeeImport = () => {
 
         // Check if the file has the required columns
         const requiredColumns = ['Name', 'Email', 'Department', 'Role'];
+        const optionalColumns = ['Manager Email', 'Position', 'Employee ID', 'Phone Number'];
         const firstRow = jsonData[0];
         const missingColumns = requiredColumns.filter(col => !(col in firstRow));
 
@@ -133,6 +134,15 @@ const EmployeeImport = () => {
           if (!validRoles.includes(row.Role.trim().toLowerCase())) {
             errors.push(`Row ${index + 1}: Invalid role '${row.Role}'. Must be one of: ${validRoles.join(', ')}`);
             return;
+          }
+
+          // Validate Manager Email format if provided
+          if (row['Manager Email'] && row['Manager Email'].trim() !== '') {
+            const managerEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!managerEmailRegex.test(row['Manager Email'].trim())) {
+              errors.push(`Row ${index + 1}: Invalid manager email format`);
+              return;
+            }
           }
 
           validatedData.push(row);
@@ -635,6 +645,15 @@ const EmployeeImport = () => {
                             >
                               Employee ID
                             </TableCell>
+                            <TableCell 
+                              sx={{ 
+                                fontWeight: 600, 
+                                fontSize: isMobile ? '0.75rem' : '0.875rem',
+                                backgroundColor: theme.palette.grey[50]
+                              }}
+                            >
+                              Manager Email
+                            </TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -672,6 +691,9 @@ const EmployeeImport = () => {
                               </TableCell>
                               <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                                 {employee['Employee ID'] || '-'}
+                              </TableCell>
+                              <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                {employee['Manager Email'] || '-'}
                               </TableCell>
                             </TableRow>
                           ))}

@@ -840,6 +840,49 @@ const downloadSampleTemplate = (req, res, next) => {
   }
 };
 
+// Helper function to check for circular manager relationships
+async function checkCircularRelationship(employeeEmail, managerEmail, allData) {
+  // Create a map of employee -> manager relationships from the import data
+  const relationshipMap = new Map();
+  
+  // Add existing relationships from database
+  const existingUsers = await User.find({ isActive: true }).select('email managerId');
+  for (const user of existingUsers) {
+    if (user.managerId) {
+      const manager = await User.findById(user.managerId).select('email');
+      if (manager) {
+        relationshipMap.set(user.email, manager.email);
+      }
+    }
+  }
+  
+  // Add relationships from current import data
+  for (const row of allData) {
+    if (row['Manager Email'] && row['Manager Email'].trim()) {
+      relationshipMap.set(row.Email.trim().toLowerCase(), row['Manager Email'].trim().toLowerCase());
+    }
+  }
+  
+  // Check for circular relationship
+  const visited = new Set();
+  let current = employeeEmail.toLowerCase();
+  
+  while (current && relationshipMap.has(current)) {
+    if (visited.has(current)) {
+      return true; // Circular relationship detected
+    }
+    visited.add(current);
+    current = relationshipMap.get(current);
+    
+    // If we've traced back to the original employee, it's circular
+    if (current === employeeEmail.toLowerCase()) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 // Helper function to process employee data from file
 async function processEmployeeData(data) {
   const results = {
@@ -927,12 +970,28 @@ async function processEmployeeData(data) {
       // Find manager if provided
       let managerId = null;
       if (row['Manager Email'] && row['Manager Email'].trim()) {
+        // Check if employee is trying to be their own manager
+        if (row.Email.trim().toLowerCase() === row['Manager Email'].trim().toLowerCase()) {
+          results.errors.push(`Row ${rowNumber}: Employee cannot be their own manager`);
+          results.failed++;
+          continue;
+        }
+        
         const manager = await User.findOne({ email: row['Manager Email'].trim().toLowerCase() });
         if (!manager) {
           results.errors.push(`Row ${rowNumber}: Manager with email '${row['Manager Email']}' not found`);
           results.failed++;
           continue;
         }
+        
+        // Check for circular relationship
+        const isCircular = await checkCircularRelationship(row.Email.trim(), row['Manager Email'].trim(), data);
+        if (isCircular) {
+          results.errors.push(`Row ${rowNumber}: Circular manager relationship detected. Employee cannot be their own manager directly or indirectly`);
+          results.failed++;
+          continue;
+        }
+        
         managerId = manager._id;
       }
 
