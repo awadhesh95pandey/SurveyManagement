@@ -5,7 +5,6 @@ import {
   TextField, 
   Button, 
   Box, 
-  Paper,
   Link,
   CircularProgress,
   Grid,
@@ -31,7 +30,6 @@ import {
   Badge,
   PersonAdd,
   Security,
-  People,
   CheckCircle
 } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
@@ -39,6 +37,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast, ToastContainer } from 'react-toastify';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import SimpleParticleRing from '../../components/animations/SimpleParticleRing';
 
 const Register = () => {
   const { register, isAuthenticated } = useAuth();
@@ -107,28 +106,30 @@ const Register = () => {
   });
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.08)} 0%, ${alpha('#ffffff', 0.9)} 50%, ${alpha(theme.palette.primary.main, 0.08)} 100%)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        py: 4,
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f87171' fill-opacity='0.02'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          opacity: 0.6,
-        }
-      }}
-    >
+    <SimpleParticleRing>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          height: '100vh',
+          background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.08)} 0%, ${alpha('#ffffff', 0.9)} 50%, ${alpha(theme.palette.primary.main, 0.08)} 100%)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          py: 4,
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f87171' fill-opacity='0.02'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            opacity: 0.6,
+          }
+        }}
+      >
       <Container maxWidth={false} sx={{ width: '100%' }}>
         <Fade in timeout={800}>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -732,7 +733,8 @@ const Register = () => {
           background: 'linear-gradient(to right, #dc2626, #ef4444)',
         }}
       />
-    </Box>
+      </Box>
+    </SimpleParticleRing>
   );
 };
 
