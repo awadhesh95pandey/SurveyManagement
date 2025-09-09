@@ -60,6 +60,7 @@ const DepartmentSurveyDistribution = ({
   const [departments, setDepartments] = useState([]);
   const [selectedDepartments, setSelectedDepartments] = useState([]);
   const [employeePreview, setEmployeePreview] = useState([]);
+  const [directReportsData, setDirectReportsData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -71,13 +72,13 @@ const DepartmentSurveyDistribution = ({
       setStep(1);
       setSelectedDepartments([]);
       setEmployeePreview([]);
+      setDirectReportsData(null);
     }
   }, [open]);
 
   useEffect(() => {
     if (selectedDepartments.length > 0) {
       fetchEmployeePreview();
-      fetchDirectReportsForSurvey(survey);
     } else {
       setEmployeePreview([]);
     }
@@ -113,6 +114,7 @@ const DepartmentSurveyDistribution = ({
 const fetchDirectReportsForSurvey = async (survey) => {
   debugger
   if (!survey?.targetEmployees || survey.targetEmployees.length === 0) {
+    setDirectReportsData({ success: false, message: "No target employees found" });
     return { success: false, message: "No target employees found" };
   }
   
@@ -130,16 +132,21 @@ const fetchDirectReportsForSurvey = async (survey) => {
     // Filter only successful ones
     const successful = results.filter(r => r.success).flatMap(r => r.data);
 
-    return {
+    const directReportsResult = {
       success: true,
       count: successful.length,
       directReports: successful,
       detailedResults: results // keep raw responses if you need errors too
     };
 
+    setDirectReportsData(directReportsResult);
+    return directReportsResult;
+
   } catch (error) {
     console.error("Error fetching direct reports for survey:", error);
-    return { success: false, message: "Failed to fetch direct reports for survey" };
+    const errorResult = { success: false, message: "Failed to fetch direct reports for survey" };
+    setDirectReportsData(errorResult);
+    return errorResult;
   }
 };
 
@@ -175,13 +182,29 @@ const fetchDirectReportsForSurvey = async (survey) => {
   const handleSendSurveyLinks = async () => {
     setSending(true);
     try {
-      const result = await surveyApi.sendSurveyLinksToDepartments(surveyId, {
+      // Combine department employees and direct reports
+      const departmentEmployeeIds = employeePreview.map(emp => emp._id);
+      const directReportIds = directReportsData?.directReports?.map(emp => emp._id) || [];
+      
+      // Remove duplicates by converting to Set and back to Array
+      const allEmployeeIds = [...new Set([...departmentEmployeeIds, ...directReportIds])];
+
+      const payload = {
         departmentIds: selectedDepartments,
-        employeeIds: employeePreview.map(emp => emp._id)
-      });
+        employeeIds: allEmployeeIds
+      };
+
+      console.log('Sending survey links with payload:', payload);
+      console.log('Department Employee IDs:', departmentEmployeeIds);
+      console.log('Direct Report IDs:', directReportIds);
+      console.log('Combined Unique Employee IDs:', allEmployeeIds);
+
+      const result = await surveyApi.sendSurveyLinksToDepartments(surveyId, payload);
+
+      const totalRecipients = allEmployeeIds.length;
 
       if (result.success) {
-        toast.success(`Survey links sent successfully to ${employeePreview.length} employees`);
+        toast.success(`Survey links sent successfully to ${totalRecipients} employees`);
         setStep(3);
         if (onDistributionComplete) {
           onDistributionComplete(result.data);
@@ -197,10 +220,17 @@ const fetchDirectReportsForSurvey = async (survey) => {
     }
   };
 
+  const handleReviewDistribution = async () => {
+    // Fetch direct reports when moving to review step
+    await fetchDirectReportsForSurvey(survey);
+    setStep(2);
+  };
+
   const handleClose = () => {
     setStep(1);
     setSelectedDepartments([]);
     setEmployeePreview([]);
+    setDirectReportsData(null);
     onClose();
   };
 
@@ -296,6 +326,11 @@ const fetchDirectReportsForSurvey = async (survey) => {
         );
 
       case 2:
+        const departmentEmployeeIds = employeePreview.map(emp => emp._id);
+        const directReportIds = directReportsData?.directReports?.map(emp => emp._id) || [];
+        const uniqueEmployeeIds = [...new Set([...departmentEmployeeIds, ...directReportIds])];
+        const totalRecipients = uniqueEmployeeIds.length;
+        
         return (
           <>
             <Typography variant="h6" gutterBottom>
@@ -316,20 +351,29 @@ const fetchDirectReportsForSurvey = async (survey) => {
                 <strong>Departments:</strong> {getSelectedDepartmentNames().join(', ')}
               </Typography>
               <Typography variant="body2">
-                <strong>Total Recipients:</strong> {employeePreview.length} employees
+                <strong>Department Employees:</strong> {employeePreview.length}
+              </Typography>
+              {directReportsData?.success && directReportsData.directReports.length > 0 && (
+                <Typography variant="body2">
+                  <strong>Direct Reports:</strong> {directReportsData.directReports.length}
+                </Typography>
+              )}
+              <Typography variant="body2">
+                <strong>Total Recipients:</strong> {totalRecipients} employees
               </Typography>
             </Paper>
 
+            {/* Department Employees Section */}
             <Typography variant="subtitle2" gutterBottom>
-              Employee List
+              Department Employees ({employeePreview.length})
             </Typography>
-            <Paper sx={{ maxHeight: 300, overflow: 'auto' }}>
+            <Paper sx={{ maxHeight: 200, overflow: 'auto', mb: 2 }}>
               <List dense>
                 {employeePreview.map((employee, index) => (
                   <React.Fragment key={employee._id}>
                     <ListItem>
                       <ListItemIcon>
-                        <PeopleIcon color="primary" />
+                        <BusinessIcon color="primary" />
                       </ListItemIcon>
                       <MuiListItemText
                         primary={employee.name}
@@ -342,6 +386,41 @@ const fetchDirectReportsForSurvey = async (survey) => {
               </List>
             </Paper>
 
+            {/* Direct Reports Section */}
+            {directReportsData?.success && directReportsData.directReports.length > 0 && (
+              <>
+                <Typography variant="subtitle2" gutterBottom>
+                  Reports To Manager({directReportsData.directReports.length})
+                </Typography>
+                <Paper sx={{ maxHeight: 200, overflow: 'auto', mb: 2 }}>
+                  <List dense>
+                    {directReportsData.directReports.map((employee, index) => (
+                      <React.Fragment key={employee._id}>
+                        <ListItem>
+                          <ListItemIcon>
+                            <PeopleIcon color="secondary" />
+                          </ListItemIcon>
+                          <MuiListItemText
+                            primary={employee.name}
+                            secondary={`${employee.email} • ${employee.department?.name || 'No Department'} • ${employee.role}`}
+                          />
+                        </ListItem>
+                        {index < directReportsData.directReports.length - 1 && <Divider />}
+                      </React.Fragment>
+                    ))}
+                  </List>
+                </Paper>
+              </>
+            )}
+
+            {directReportsData?.success === false && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  No direct reports found for survey target employees.
+                </Typography>
+              </Alert>
+            )}
+
             <Alert severity="warning" sx={{ mt: 2 }}>
               <Typography variant="body2">
                 Survey links will be sent immediately to all listed employees. 
@@ -352,6 +431,11 @@ const fetchDirectReportsForSurvey = async (survey) => {
         );
 
       case 3:
+        const finalDepartmentEmployeeIds = employeePreview.map(emp => emp._id);
+        const finalDirectReportIds = directReportsData?.directReports?.map(emp => emp._id) || [];
+        const finalUniqueEmployeeIds = [...new Set([...finalDepartmentEmployeeIds, ...finalDirectReportIds])];
+        const finalTotalRecipients = finalUniqueEmployeeIds.length;
+        
         return (
           <>
             <Box textAlign="center" py={4}>
@@ -360,7 +444,7 @@ const fetchDirectReportsForSurvey = async (survey) => {
                 Survey Links Sent Successfully!
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                Survey links have been sent to {employeePreview.length} employees 
+                Survey links have been sent to {finalTotalRecipients} employees 
                 across {selectedDepartments.length} departments.
               </Typography>
               
@@ -372,7 +456,15 @@ const fetchDirectReportsForSurvey = async (survey) => {
                   • <strong>Departments:</strong> {getSelectedDepartmentNames().join(', ')}
                 </Typography>
                 <Typography variant="body2">
-                  • <strong>Employees Notified:</strong> {employeePreview.length}
+                  • <strong>Department Employees:</strong> {employeePreview.length}
+                </Typography>
+                {directReportsData?.success && directReportsData.directReports.length > 0 && (
+                  <Typography variant="body2">
+                    • <strong>Direct Reports:</strong> {directReportsData.directReports.length}
+                  </Typography>
+                )}
+                <Typography variant="body2">
+                  • <strong>Total Employees Notified:</strong> {finalTotalRecipients}
                 </Typography>
                 <Typography variant="body2">
                   • <strong>Survey:</strong> {surveyTitle}
@@ -397,7 +489,7 @@ const fetchDirectReportsForSurvey = async (survey) => {
             </Button>
             <Button
               variant="contained"
-              onClick={() => setStep(2)}
+              onClick={handleReviewDistribution}
               disabled={selectedDepartments.length === 0 || previewLoading}
               startIcon={<EmailIcon />}
             >
