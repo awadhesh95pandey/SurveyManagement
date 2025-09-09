@@ -33,7 +33,9 @@ import {
   Email as EmailIcon,
   Send as SendIcon,
   CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  SupervisorAccount as ManagerIcon,
+  Group as TeamIcon
 } from '@mui/icons-material';
 import { departmentApi, employeeApi, surveyApi } from '../../services/api';
 import { toast } from 'react-toastify';
@@ -114,7 +116,10 @@ const DepartmentSurveyDistribution = ({
     setPreviewLoading(true);
     try {
       const employeePromises = selectedDepartments.map(deptId => 
-        employeeApi.getEmployeesByDepartment(deptId)
+        employeeApi.getEmployeesByDepartment(deptId, { 
+          includeManager: 'true',
+          includeDirectReports: 'true' 
+        })
       );
       
       const results = await Promise.all(employeePromises);
@@ -285,23 +290,68 @@ const DepartmentSurveyDistribution = ({
               <Typography variant="body2">
                 <strong>Total Recipients:</strong> {employeePreview.length} employees
               </Typography>
+              
+              {/* Organizational Structure Summary */}
+              <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e0e0e0' }}>
+                <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                  <strong>Organizational Structure:</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  • Managers: {employeePreview.filter(emp => emp.directReports && emp.directReports.length > 0).length}
+                </Typography>
+                <br />
+                <Typography variant="caption" color="text.secondary">
+                  • Employees with Managers: {employeePreview.filter(emp => emp.managerId).length}
+                </Typography>
+                <br />
+                <Typography variant="caption" color="text.secondary">
+                  • Total Direct Reports: {employeePreview.reduce((sum, emp) => sum + (emp.directReports ? emp.directReports.length : 0), 0)}
+                </Typography>
+              </Box>
             </Paper>
 
             <Typography variant="subtitle2" gutterBottom>
-              Employee List
+              Employee List with Organizational Structure
             </Typography>
-            <Paper sx={{ maxHeight: 300, overflow: 'auto' }}>
+            <Paper sx={{ maxHeight: 400, overflow: 'auto' }}>
               <List dense>
                 {employeePreview.map((employee, index) => (
                   <React.Fragment key={employee._id}>
-                    <ListItem>
-                      <ListItemIcon>
-                        <PeopleIcon color="primary" />
-                      </ListItemIcon>
-                      <MuiListItemText
-                        primary={employee.name}
-                        secondary={`${employee.email} • ${employee.department?.name || 'No Department'}`}
-                      />
+                    <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 1 }}>
+                        <ListItemIcon sx={{ minWidth: 40 }}>
+                          <PeopleIcon color="primary" />
+                        </ListItemIcon>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                            {employee.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {employee.email} • {employee.department?.name || 'No Department'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      
+                      {/* Manager Information */}
+                      {employee.managerId && (
+                        <Box sx={{ ml: 5, mb: 0.5, display: 'flex', alignItems: 'center' }}>
+                          <ManagerIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            <strong>Manager:</strong> {employee.managerId.name} ({employee.managerId.email})
+                          </Typography>
+                        </Box>
+                      )}
+                      
+                      {/* Direct Reports Information */}
+                      {employee.directReports && employee.directReports.length > 0 && (
+                        <Box sx={{ ml: 5, display: 'flex', alignItems: 'center' }}>
+                          <TeamIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            <strong>Direct Reports ({employee.directReports.length}):</strong>{' '}
+                            {employee.directReports.map(report => report.name).join(', ')}
+                          </Typography>
+                        </Box>
+                      )}
                     </ListItem>
                     {index < employeePreview.length - 1 && <Divider />}
                   </React.Fragment>

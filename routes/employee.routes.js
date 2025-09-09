@@ -267,6 +267,7 @@ router.get('/by-department/:departmentId', protect, async (req, res) => {
     const employees = await User.find(query)
       .populate('department', 'name code')
       .populate('managerId', 'name email')
+      .populate('directReports', 'name email')
       .select('-password')
       .sort({ name: 1 });
 
