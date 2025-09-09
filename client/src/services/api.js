@@ -878,6 +878,20 @@ export const employeeApi = {
     }
   },
 
+  // Get employees by department with expanded organizational network
+  getEmployeesByDepartmentExpanded: async (departmentId, params = {}) => {
+    try {
+      const response = await axios.get(`/api/employees/by-department/${departmentId}/expanded`, { params });
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error(`Error fetching expanded employee network for department ${departmentId}:`, error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to fetch expanded employee network' 
+      };
+    }
+  },
+
   // Get single employee
   getEmployee: async (id) => {
     try {

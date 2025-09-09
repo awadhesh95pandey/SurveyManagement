@@ -61,6 +61,7 @@ const DepartmentSurveyDistribution = ({
   const [departments, setDepartments] = useState([]);
   const [selectedDepartments, setSelectedDepartments] = useState([]);
   const [employeePreview, setEmployeePreview] = useState([]);
+  const [expandedEmployeeData, setExpandedEmployeeData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -72,6 +73,7 @@ const DepartmentSurveyDistribution = ({
       setStep(1);
       setSelectedDepartments([]);
       setEmployeePreview([]);
+      setExpandedEmployeeData(null);
     }
   }, [open]);
 
@@ -80,6 +82,7 @@ const DepartmentSurveyDistribution = ({
       fetchEmployeePreview();
     } else {
       setEmployeePreview([]);
+      setExpandedEmployeeData(null);
     }
   }, [selectedDepartments]);
 
@@ -115,22 +118,72 @@ const DepartmentSurveyDistribution = ({
     debugger;
     setPreviewLoading(true);
     try {
-      const employeePromises = selectedDepartments.map(deptId => 
-        employeeApi.getEmployeesByDepartment(deptId, { 
-          includeManager: 'true',
-          includeDirectReports: 'true' 
+      const expandedDataPromises = selectedDepartments.map(deptId => 
+        employeeApi.getEmployeesByDepartmentExpanded(deptId, { 
+          includeSubdepartments: 'false',
+          active: 'true' 
         })
       );
       
-      const results = await Promise.all(employeePromises);
-      const allEmployees = results
-        .filter(result => result.success)
-        .flatMap(result => result.data)
-        .filter((employee, index, self) => 
-          index === self.findIndex(e => e._id === employee._id)
-        ); // Remove duplicates
+      const results = await Promise.all(expandedDataPromises);
+      const successfulResults = results.filter(result => result.success);
+      
+      if (successfulResults.length === 0) {
+        setEmployeePreview([]);
+        setExpandedEmployeeData(null);
+        return;
+      }
 
-      setEmployeePreview(allEmployees);
+      // Combine all target employees and additional employees
+      let allTargetEmployees = [];
+      let allAdditionalEmployees = [];
+      let combinedSummary = {
+        targetCount: 0,
+        additionalCount: 0,
+        totalCount: 0,
+        managersFromOtherDepts: 0,
+        directReportsFromOtherDepts: 0
+      };
+
+      successfulResults.forEach(result => {
+        const data = result.data;
+        
+        // Merge target employees (remove duplicates)
+        data.targetEmployees.forEach(emp => {
+          if (!allTargetEmployees.find(existing => existing._id === emp._id)) {
+            allTargetEmployees.push(emp);
+          }
+        });
+        
+        // Merge additional employees (remove duplicates)
+        data.additionalEmployees.forEach(emp => {
+          if (!allAdditionalEmployees.find(existing => existing._id === emp._id)) {
+            allAdditionalEmployees.push(emp);
+          }
+        });
+        
+        // Combine summary stats
+        combinedSummary.managersFromOtherDepts += data.summary.managersFromOtherDepts;
+        combinedSummary.directReportsFromOtherDepts += data.summary.directReportsFromOtherDepts;
+      });
+
+      // Update final counts
+      combinedSummary.targetCount = allTargetEmployees.length;
+      combinedSummary.additionalCount = allAdditionalEmployees.length;
+      combinedSummary.totalCount = allTargetEmployees.length + allAdditionalEmployees.length;
+
+      // Set the expanded data structure
+      const expandedData = {
+        targetEmployees: allTargetEmployees,
+        additionalEmployees: allAdditionalEmployees,
+        summary: combinedSummary
+      };
+
+      setExpandedEmployeeData(expandedData);
+      
+      // For backward compatibility, set employeePreview to target employees
+      setEmployeePreview(allTargetEmployees);
+      
     } catch (error) {
       console.error('Error fetching employee preview:', error);
       toast.error('An error occurred while fetching employee preview');
@@ -173,6 +226,7 @@ const DepartmentSurveyDistribution = ({
     setStep(1);
     setSelectedDepartments([]);
     setEmployeePreview([]);
+    setExpandedEmployeeData(null);
     onClose();
   };
 
@@ -262,6 +316,12 @@ const DepartmentSurveyDistribution = ({
                 <Typography variant="body2">
                   <strong>{employeePreview.length} employees</strong> will receive the survey link
                 </Typography>
+                {expandedEmployeeData && expandedEmployeeData.summary.additionalCount > 0 && (
+                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                    Plus {expandedEmployeeData.summary.additionalCount} related employees (managers/direct reports) 
+                    from other departments will be visible for organizational context
+                  </Typography>
+                )}
               </Alert>
             )}
           </>
@@ -288,75 +348,172 @@ const DepartmentSurveyDistribution = ({
                 <strong>Departments:</strong> {getSelectedDepartmentNames().join(', ')}
               </Typography>
               <Typography variant="body2">
-                <strong>Total Recipients:</strong> {employeePreview.length} employees
+                <strong>Survey Recipients:</strong> {employeePreview.length} employees
               </Typography>
               
-              {/* Organizational Structure Summary */}
-              <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e0e0e0' }}>
-                <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                  <strong>Organizational Structure:</strong>
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  • Managers: {employeePreview.filter(emp => emp.directReports && emp.directReports.length > 0).length}
-                </Typography>
-                <br />
-                <Typography variant="caption" color="text.secondary">
-                  • Employees with Managers: {employeePreview.filter(emp => emp.managerId).length}
-                </Typography>
-                <br />
-                <Typography variant="caption" color="text.secondary">
-                  • Total Direct Reports: {employeePreview.reduce((sum, emp) => sum + (emp.directReports ? emp.directReports.length : 0), 0)}
-                </Typography>
-              </Box>
+              {/* Expanded Network Summary */}
+              {expandedEmployeeData && (
+                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e0e0e0' }}>
+                  <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                    <strong>Expanded Organizational Network:</strong>
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    • Target Employees (from selected departments): {expandedEmployeeData.summary.targetCount}
+                  </Typography>
+                  <br />
+                  <Typography variant="caption" color="text.secondary">
+                    • Additional Employees (managers/reports from other departments): {expandedEmployeeData.summary.additionalCount}
+                  </Typography>
+                  <br />
+                  <Typography variant="caption" color="text.secondary">
+                    • Managers from Other Departments: {expandedEmployeeData.summary.managersFromOtherDepts}
+                  </Typography>
+                  <br />
+                  <Typography variant="caption" color="text.secondary">
+                    • Direct Reports from Other Departments: {expandedEmployeeData.summary.directReportsFromOtherDepts}
+                  </Typography>
+                  <br />
+                  <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600 }}>
+                    • Total Network Size: {expandedEmployeeData.summary.totalCount} employees
+                  </Typography>
+                </Box>
+              )}
             </Paper>
 
             <Typography variant="subtitle2" gutterBottom>
-              Employee List with Organizational Structure
+              Complete Organizational Network
             </Typography>
-            <Paper sx={{ maxHeight: 400, overflow: 'auto' }}>
-              <List dense>
-                {employeePreview.map((employee, index) => (
-                  <React.Fragment key={employee._id}>
-                    <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 1 }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
+            <Paper sx={{ maxHeight: 500, overflow: 'auto' }}>
+              {expandedEmployeeData ? (
+                <>
+                  {/* Target Employees Section */}
+                  <Box sx={{ p: 2, bgcolor: 'primary.50', borderBottom: '1px solid #e0e0e0' }}>
+                    <Typography variant="subtitle2" color="primary.main" sx={{ fontWeight: 600, mb: 1 }}>
+                      📋 Survey Recipients ({expandedEmployeeData.summary.targetCount})
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Employees from selected departments who will receive the survey
+                    </Typography>
+                  </Box>
+                  <List dense>
+                    {expandedEmployeeData.targetEmployees.map((employee, index) => (
+                      <React.Fragment key={`target-${employee._id}`}>
+                        <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 2, bgcolor: 'primary.25' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 40 }}>
+                              <PeopleIcon color="primary" />
+                            </ListItemIcon>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                {employee.name}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {employee.email} • {employee.department?.name || 'No Department'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          
+                          {/* Manager Information */}
+                          {employee.managerId && (
+                            <Box sx={{ ml: 5, mb: 0.5, display: 'flex', alignItems: 'center' }}>
+                              <ManagerIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                              <Typography variant="caption" color="text.secondary">
+                                <strong>Manager:</strong> {employee.managerId.name} ({employee.managerId.email})
+                              </Typography>
+                            </Box>
+                          )}
+                          
+                          {/* Direct Reports Information */}
+                          {employee.directReports && employee.directReports.length > 0 && (
+                            <Box sx={{ ml: 5, display: 'flex', alignItems: 'center' }}>
+                              <TeamIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                              <Typography variant="caption" color="text.secondary">
+                                <strong>Direct Reports ({employee.directReports.length}):</strong>{' '}
+                                {employee.directReports.map(report => report.name).join(', ')}
+                              </Typography>
+                            </Box>
+                          )}
+                        </ListItem>
+                        {index < expandedEmployeeData.targetEmployees.length - 1 && <Divider />}
+                      </React.Fragment>
+                    ))}
+                  </List>
+
+                  {/* Additional Employees Section */}
+                  {expandedEmployeeData.additionalEmployees.length > 0 && (
+                    <>
+                      <Box sx={{ p: 2, bgcolor: 'warning.50', borderTop: '2px solid #e0e0e0', borderBottom: '1px solid #e0e0e0' }}>
+                        <Typography variant="subtitle2" color="warning.main" sx={{ fontWeight: 600, mb: 1 }}>
+                          🔗 Related Employees ({expandedEmployeeData.summary.additionalCount})
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Managers and direct reports from other departments (for organizational context)
+                        </Typography>
+                      </Box>
+                      <List dense>
+                        {expandedEmployeeData.additionalEmployees.map((employee, index) => (
+                          <React.Fragment key={`additional-${employee._id}`}>
+                            <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 2, bgcolor: 'warning.25' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 1 }}>
+                                <ListItemIcon sx={{ minWidth: 40 }}>
+                                  <PeopleIcon color="warning" />
+                                </ListItemIcon>
+                                <Box sx={{ flex: 1 }}>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                    {employee.name}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {employee.email} • {employee.department?.name || 'No Department'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              
+                              {/* Manager Information */}
+                              {employee.managerId && (
+                                <Box sx={{ ml: 5, mb: 0.5, display: 'flex', alignItems: 'center' }}>
+                                  <ManagerIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                                  <Typography variant="caption" color="text.secondary">
+                                    <strong>Manager:</strong> {employee.managerId.name} ({employee.managerId.email})
+                                  </Typography>
+                                </Box>
+                              )}
+                              
+                              {/* Direct Reports Information */}
+                              {employee.directReports && employee.directReports.length > 0 && (
+                                <Box sx={{ ml: 5, display: 'flex', alignItems: 'center' }}>
+                                  <TeamIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                                  <Typography variant="caption" color="text.secondary">
+                                    <strong>Direct Reports ({employee.directReports.length}):</strong>{' '}
+                                    {employee.directReports.map(report => report.name).join(', ')}
+                                  </Typography>
+                                </Box>
+                              )}
+                            </ListItem>
+                            {index < expandedEmployeeData.additionalEmployees.length - 1 && <Divider />}
+                          </React.Fragment>
+                        ))}
+                      </List>
+                    </>
+                  )}
+                </>
+              ) : (
+                <List dense>
+                  {employeePreview.map((employee, index) => (
+                    <React.Fragment key={employee._id}>
+                      <ListItem>
+                        <ListItemIcon>
                           <PeopleIcon color="primary" />
                         </ListItemIcon>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {employee.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {employee.email} • {employee.department?.name || 'No Department'}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      
-                      {/* Manager Information */}
-                      {employee.managerId && (
-                        <Box sx={{ ml: 5, mb: 0.5, display: 'flex', alignItems: 'center' }}>
-                          <ManagerIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                          <Typography variant="caption" color="text.secondary">
-                            <strong>Manager:</strong> {employee.managerId.name} ({employee.managerId.email})
-                          </Typography>
-                        </Box>
-                      )}
-                      
-                      {/* Direct Reports Information */}
-                      {employee.directReports && employee.directReports.length > 0 && (
-                        <Box sx={{ ml: 5, display: 'flex', alignItems: 'center' }}>
-                          <TeamIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                          <Typography variant="caption" color="text.secondary">
-                            <strong>Direct Reports ({employee.directReports.length}):</strong>{' '}
-                            {employee.directReports.map(report => report.name).join(', ')}
-                          </Typography>
-                        </Box>
-                      )}
-                    </ListItem>
-                    {index < employeePreview.length - 1 && <Divider />}
-                  </React.Fragment>
-                ))}
-              </List>
+                        <MuiListItemText
+                          primary={employee.name}
+                          secondary={`${employee.email} • ${employee.department?.name || 'No Department'}`}
+                        />
+                      </ListItem>
+                      {index < employeePreview.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))}
+                </List>
+              )}
             </Paper>
 
             <Alert severity="warning" sx={{ mt: 2 }}>

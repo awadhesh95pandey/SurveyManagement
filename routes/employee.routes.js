@@ -285,6 +285,122 @@ router.get('/by-department/:departmentId', protect, async (req, res) => {
   }
 });
 
+// @desc    Get employees by department with expanded organizational network
+// @route   GET /api/employees/by-department/:departmentId/expanded
+// @access  Private
+router.get('/by-department/:departmentId/expanded', protect, async (req, res) => {
+  try {
+    const { departmentId } = req.params;
+    const { 
+      includeSubdepartments = 'false',
+      role = '',
+      active = 'true'
+    } = req.query;
+
+    // Validate department exists
+    const department = await Department.findById(departmentId);
+    if (!department) {
+      return res.status(404).json({
+        success: false,
+        message: 'Department not found'
+      });
+    }
+
+    let departmentIds = [departmentId];
+
+    // Include subdepartments if requested
+    if (includeSubdepartments === 'true') {
+      const subdepartments = await Department.find({ 
+        parentDepartment: departmentId,
+        isActive: true 
+      });
+      departmentIds = departmentIds.concat(subdepartments.map(d => d._id.toString()));
+    }
+
+    // Build query for target employees (from selected departments)
+    let query = {
+      department: { $in: departmentIds }
+    };
+
+    if (active === 'true') {
+      query.isActive = true;
+    }
+
+    if (role) {
+      query.role = role;
+    }
+
+    // Step 1: Get target employees from selected departments
+    const targetEmployees = await User.find(query)
+      .populate('department', 'name code')
+      .populate('managerId', 'name email department')
+      .populate('directReports', 'name email department')
+      .select('-password')
+      .sort({ name: 1 });
+
+    // Step 2: Collect all manager and direct report IDs
+    const additionalEmployeeIds = new Set();
+    
+    targetEmployees.forEach(employee => {
+      // Add manager ID if exists and not already in target employees
+      if (employee.managerId && !targetEmployees.find(emp => emp._id.toString() === employee.managerId._id.toString())) {
+        additionalEmployeeIds.add(employee.managerId._id.toString());
+      }
+      
+      // Add direct report IDs if they exist and not already in target employees
+      if (employee.directReports && employee.directReports.length > 0) {
+        employee.directReports.forEach(report => {
+          if (!targetEmployees.find(emp => emp._id.toString() === report._id.toString())) {
+            additionalEmployeeIds.add(report._id.toString());
+          }
+        });
+      }
+    });
+
+    // Step 3: Fetch additional employees (managers and direct reports from other departments)
+    let additionalEmployees = [];
+    if (additionalEmployeeIds.size > 0) {
+      additionalEmployees = await User.find({
+        _id: { $in: Array.from(additionalEmployeeIds) },
+        isActive: active === 'true' ? true : { $in: [true, false] }
+      })
+        .populate('department', 'name code')
+        .populate('managerId', 'name email department')
+        .populate('directReports', 'name email department')
+        .select('-password')
+        .sort({ name: 1 });
+    }
+
+    // Step 4: Combine and categorize employees
+    const result = {
+      targetEmployees: targetEmployees,
+      additionalEmployees: additionalEmployees,
+      summary: {
+        targetCount: targetEmployees.length,
+        additionalCount: additionalEmployees.length,
+        totalCount: targetEmployees.length + additionalEmployees.length,
+        managersFromOtherDepts: additionalEmployees.filter(emp => 
+          targetEmployees.some(target => target.managerId && target.managerId._id.toString() === emp._id.toString())
+        ).length,
+        directReportsFromOtherDepts: additionalEmployees.filter(emp => 
+          targetEmployees.some(target => target.directReports && target.directReports.some(dr => dr._id.toString() === emp._id.toString()))
+        ).length
+      }
+    };
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error fetching expanded employee network:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching expanded employee network'
+    });
+  }
+});
+
 // @desc    Get single employee
 // @route   GET /api/employees/:id
 // @access  Private
