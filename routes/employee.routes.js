@@ -779,10 +779,12 @@ const downloadSampleTemplate = (req, res, next) => {
     
     if (format === 'csv') {
       // Create CSV sample
-      const csvContent = 'Name,Email,Department,Role,Position,Employee ID,Phone Number,Manager Email\n' +
-                         'John Doe,john.doe@company.com,Engineering,employee,Software Developer,EMP001,+1234567890,manager@company.com\n' +
-                         'Jane Smith,jane.smith@company.com,Marketing,employee,Marketing Specialist,EMP002,+1234567891,manager@company.com\n' +
-                         'Mike Johnson,mike.johnson@company.com,HR,manager,HR Manager,EMP003,+1234567892,';
+      const csvContent = 'Name,Email,Department,Role,Position,Employee ID,Phone Number,Manager Email,Direct Reports\n' +
+                         'John Doe,john.doe@company.com,Engineering,employee,Software Developer,EMP001,+1234567890,manager@company.com,\n' +
+                         'Jane Smith,jane.smith@company.com,Marketing,employee,Marketing Specialist,EMP002,+1234567891,manager@company.com,\n' +
+                         'Mike Johnson,mike.johnson@company.com,HR,manager,HR Manager,EMP003,+1234567892,,john.doe@company.com;jane.smith@company.com\n' +
+                         'Sarah Wilson,sarah.wilson@company.com,Engineering,manager,Engineering Manager,EMP004,+1234567893,,\n' +
+                         'Tom Brown,tom.brown@company.com,Marketing,manager,Marketing Manager,EMP005,+1234567894,,';
       
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename=sample_employees.csv');
@@ -801,7 +803,8 @@ const downloadSampleTemplate = (req, res, next) => {
           Position: 'Software Developer', 
           'Employee ID': 'EMP001', 
           'Phone Number': '+1234567890', 
-          'Manager Email': 'manager@company.com' 
+          'Manager Email': 'manager@company.com',
+          'Direct Reports': ''
         },
         { 
           Name: 'Jane Smith', 
@@ -811,7 +814,8 @@ const downloadSampleTemplate = (req, res, next) => {
           Position: 'Marketing Specialist', 
           'Employee ID': 'EMP002', 
           'Phone Number': '+1234567891', 
-          'Manager Email': 'manager@company.com' 
+          'Manager Email': 'manager@company.com',
+          'Direct Reports': ''
         },
         { 
           Name: 'Mike Johnson', 
@@ -821,7 +825,30 @@ const downloadSampleTemplate = (req, res, next) => {
           Position: 'HR Manager', 
           'Employee ID': 'EMP003', 
           'Phone Number': '+1234567892', 
-          'Manager Email': '' 
+          'Manager Email': '',
+          'Direct Reports': 'john.doe@company.com;jane.smith@company.com'
+        },
+        { 
+          Name: 'Sarah Wilson', 
+          Email: 'sarah.wilson@company.com', 
+          Department: 'Engineering', 
+          Role: 'manager', 
+          Position: 'Engineering Manager', 
+          'Employee ID': 'EMP004', 
+          'Phone Number': '+1234567893', 
+          'Manager Email': '',
+          'Direct Reports': ''
+        },
+        { 
+          Name: 'Tom Brown', 
+          Email: 'tom.brown@company.com', 
+          Department: 'Marketing', 
+          Role: 'manager', 
+          Position: 'Marketing Manager', 
+          'Employee ID': 'EMP005', 
+          'Phone Number': '+1234567894', 
+          'Manager Email': '',
+          'Direct Reports': ''
         }
       ];
       
@@ -1014,6 +1041,50 @@ async function processEmployeeData(data) {
           managerId,
           { $addToSet: { directReports: employee._id } }
         );
+      }
+
+      // Handle Direct Reports field if provided
+      if (row['Direct Reports'] && row['Direct Reports'].trim()) {
+        const directReportEmails = row['Direct Reports'].trim().split(';').map(email => email.trim()).filter(email => email);
+        const directReportIds = [];
+        
+        for (const reportEmail of directReportEmails) {
+          // Validate email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(reportEmail)) {
+            results.errors.push(`Row ${rowNumber}: Invalid direct report email format: ${reportEmail}`);
+            continue;
+          }
+          
+          // Find the direct report user
+          const reportUser = await User.findOne({ email: reportEmail.toLowerCase() });
+          if (!reportUser) {
+            results.errors.push(`Row ${rowNumber}: Direct report with email '${reportEmail}' not found`);
+            continue;
+          }
+          
+          // Check if trying to add themselves as direct report
+          if (reportUser._id.toString() === employee._id.toString()) {
+            results.errors.push(`Row ${rowNumber}: Employee cannot be their own direct report`);
+            continue;
+          }
+          
+          directReportIds.push(reportUser._id);
+          
+          // Update the direct report's manager to this employee
+          await User.findByIdAndUpdate(
+            reportUser._id,
+            { managerId: employee._id }
+          );
+        }
+        
+        // Update this employee's direct reports
+        if (directReportIds.length > 0) {
+          await User.findByIdAndUpdate(
+            employee._id,
+            { $addToSet: { directReports: { $each: directReportIds } } }
+          );
+        }
       }
 
       // Populate the created employee for response
