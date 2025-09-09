@@ -757,6 +757,7 @@ const ConsentStatus = () => {
           onClose={() => setShowDepartmentDialog(false)}
           surveyId={surveyId}
           surveyTitle={survey?.name}
+          survey={survey}
           onDistributionComplete={handleDistributionComplete}
         />
       </Container>
