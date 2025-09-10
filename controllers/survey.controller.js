@@ -447,7 +447,24 @@ exports.getActiveSurveys = async (req, res, next) => {
   }
 };
 
-
+// @desc    Get completed surveys
+// @route   GET /api/surveys/completed
+// @access  Private
+exports.getCompletedSurveys = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const completedSurveys = await Survey.find({
+      endDate: { $lt: now },
+    }).sort({ endDate: -1 });
+    res.status(200).json({
+      success: true,
+      count: completedSurveys.length,
+      data: completedSurveys
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 
 // @desc    Update survey status

@@ -38,6 +38,7 @@ import { toast } from 'react-toastify';
 const Dashboard = () => {
   const [activeSurveys, setActiveSurveys] = useState([]);
   const [upcomingSurveys, setUpcomingSurveys] = useState([]);
+  const [completedSurveys, setCompletedSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -63,6 +64,14 @@ const Dashboard = () => {
           setUpcomingSurveys(upcomingResult.data);
         } else {
           toast.error('Failed to fetch upcoming surveys');
+        }
+
+        // Fetch completed surveys
+        const completedResult = await surveyApi.getCompletedSurveys();
+        if (completedResult.success) {
+          setCompletedSurveys(completedResult.data);
+        } else {
+          toast.error('Failed to fetch completed surveys');
         }
       } catch (error) {
         console.error('Error fetching surveys:', error);
@@ -239,7 +248,7 @@ const Dashboard = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Box>
                         <Typography variant="h6" component="div" sx={{ fontWeight: 600, mb: 0.25, fontSize: '1.25rem' }}>
-                          {loading ? <CircularProgress size={20} color="inherit" /> : '0'}
+                          {loading ? <CircularProgress size={20} color="inherit" />  : completedSurveys.length}
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Completed Surveys</Typography>
                       </Box>

@@ -75,10 +75,9 @@ const sendConsentRequestEmail = async (options) => {
     <h1>Your Consent is Requested: ${options.surveyName}</h1>
     <p>Dear ${options.userName},</p>
     <p>You have been invited to participate in the survey "${options.surveyName}" which will be published on ${new Date(options.publishDate).toLocaleDateString()}.</p>
-    <p>Before the survey begins, we need your consent to associate your responses with your user information. If you do not provide consent, you can still participate anonymously.</p>
+    <p>Before the survey begins, we need your consent to associate your responses with your user information.</p>
     <div style="margin: 20px 0;">
       <a href="${consentUrl}?consent=true" style="background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; margin-right: 10px;">I consent to participate</a>
-      <a href="${consentUrl}?consent=false" style="background-color: #f44336; color: white; padding: 10px 15px; text-decoration: none;">I prefer to participate anonymously</a>
     </div>
     <p>Please note that this consent request will expire on ${new Date(options.publishDate).toLocaleDateString()}.</p>
     <p>Thank you,<br>Survey Management System</p>
