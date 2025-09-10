@@ -146,6 +146,7 @@ const Dashboard = () => {
                     startIcon={<AddIcon />}
                     onClick={handleCreateSurvey}
                     sx={{
+                      display: 'none', // Hide Create Survey button for now
                       background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
                       boxShadow: `0 4px 16px ${alpha(theme.palette.primary.main, 0.2)}`,
                       '&:hover': {

@@ -7,6 +7,7 @@ const User = require('../models/User');
 const SurveyToken = require('../models/SurveyToken');
 const ExcelJS = require('exceljs');
 const { Parser } = require('@json2csv/plainjs');
+const PDFDocument = require('pdfkit');
 
 // @desc    Generate survey report
 // @route   GET /api/reports/surveys/:surveyId
@@ -43,7 +44,7 @@ exports.generateSurveyReport = async (req, res, next) => {
     const totalAttempts = attempts.length;
     const completedAttempts = attempts.filter(a => a.completed).length;
     const identifiedUsers = attempts.filter(a => a.userId !== null).length;
-    const anonymousUsers = attempts.filter(a => a.anonymous).length;
+    const anonymousUsers = attempts.filter(a => a.anonymous && a.completed).length;
     
     // Get question results
     const questionResults = await Promise.all(
@@ -346,70 +347,128 @@ exports.exportSurveyResults = async (req, res, next) => {
     const totalAttempts = attempts.length;
     const completedAttempts = attempts.filter(a => a.completed).length;
     
+    // Prepare report data
+    const reportData = {
+      survey: {
+        id: survey._id,
+        name: survey.name,
+        publishDate: survey.publishDate,
+        endDate: survey.endDate,
+        department: survey.department,
+        status: survey.status
+      },
+      participation: {
+        totalAttempts,
+        completedAttempts,
+        completionRate: totalAttempts > 0 ? (completedAttempts / totalAttempts) * 100 : 0
+      },
+      questions: questions.map(question => {
+        const questionResponses = responses.filter(
+          r => r.questionId.toString() === question._id.toString()
+        );
+        
+        // Count responses by option
+        const distribution = {};
+        question.options.forEach(option => {
+          distribution[option] = 0;
+        });
+        
+        questionResponses.forEach(response => {
+          if (distribution[response.selectedOption] !== undefined) {
+            distribution[response.selectedOption]++;
+          }
+        });
+        
+        return {
+          questionId: question._id,
+          questionText: question.questionText,
+          parameter: question.parameter,
+          options: question.options,
+          totalResponses: questionResponses.length,
+          distribution
+        };
+      })
+    };
+    
     // Format data based on requested format
     if (format === 'json') {
-      // Return JSON data
-      const reportData = {
-        survey: {
-          id: survey._id,
-          name: survey.name,
-          publishDate: survey.publishDate,
-          endDate: survey.endDate,
-          department: survey.department,
-          status: survey.status
-        },
-        participation: {
-          totalAttempts,
-          completedAttempts,
-          completionRate: totalAttempts > 0 ? (completedAttempts / totalAttempts) * 100 : 0
-        },
-        questions: questions.map(question => {
-          const questionResponses = responses.filter(
-            r => r.questionId.toString() === question._id.toString()
-          );
-          
-          // Count responses by option
-          const distribution = {};
-          question.options.forEach(option => {
-            distribution[option] = 0;
-          });
-          
-          questionResponses.forEach(response => {
-            if (distribution[response.selectedOption] !== undefined) {
-              distribution[response.selectedOption]++;
-            }
-          });
-          
-          return {
-            questionId: question._id,
-            questionText: question.questionText,
-            parameter: question.parameter,
-            options: question.options,
-            totalResponses: questionResponses.length,
-            distribution
-          };
-        })
-      };
-      
       return res.status(200).json({
         success: true,
         data: reportData
       });
-    } else {
-      // For now, just return JSON with a message that other formats are not implemented
-      // In a real implementation, you would generate PDF or Excel here
-      return res.status(200).json({
-        success: true,
-        message: `Export to ${format} format is not implemented yet. Please use 'json' format.`,
-        data: {
-          survey: {
-            id: survey._id,
-            name: survey.name
-          }
+    } else if (format === 'pdf') {
+      // Generate PDF
+      const doc = new PDFDocument();
+      
+      // Set response headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="survey_results_${survey._id}.pdf"`);
+      
+      // Pipe the PDF to the response
+      doc.pipe(res);
+      
+      // Add content to PDF
+      doc.fontSize(20).text('Survey Results Report', { align: 'center' });
+      doc.moveDown();
+      
+      // Survey details
+      doc.fontSize(16).text('Survey Information', { underline: true });
+      doc.fontSize(12)
+         .text(`Name: ${reportData.survey.name}`)
+         .text(`Department: ${reportData.survey.department}`)
+         .text(`Status: ${reportData.survey.status}`)
+         .text(`Publish Date: ${new Date(reportData.survey.publishDate).toLocaleDateString()}`)
+         .text(`End Date: ${reportData.survey.endDate ? new Date(reportData.survey.endDate).toLocaleDateString() : 'Not set'}`);
+      
+      doc.moveDown();
+      
+      // Participation statistics
+      doc.fontSize(16).text('Participation Statistics', { underline: true });
+      doc.fontSize(12)
+         .text(`Total Attempts: ${reportData.participation.totalAttempts}`)
+         .text(`Completed Attempts: ${reportData.participation.completedAttempts}`)
+         .text(`Completion Rate: ${reportData.participation.completionRate.toFixed(2)}%`);
+      
+      doc.moveDown();
+      
+      // Questions and responses
+      doc.fontSize(16).text('Question Analysis', { underline: true });
+      
+      reportData.questions.forEach((question, index) => {
+        doc.moveDown();
+        doc.fontSize(14).text(`Question ${index + 1}: ${question.questionText}`, { underline: true });
+        doc.fontSize(12).text(`Parameter: ${question.parameter}`);
+        doc.text(`Total Responses: ${question.totalResponses}`);
+        
+        doc.moveDown(0.5);
+        doc.text('Response Distribution:');
+        
+        Object.entries(question.distribution).forEach(([option, count]) => {
+          const percentage = question.totalResponses > 0 
+            ? ((count / question.totalResponses) * 100).toFixed(1)
+            : 0;
+          doc.text(`  ${option}: ${count} (${percentage}%)`);
+        });
+        
+        // Add page break if needed (except for last question)
+        if (index < reportData.questions.length - 1 && doc.y > 700) {
+          doc.addPage();
         }
       });
+      
+      // Finalize the PDF
+      doc.end();
+      
+    } else {
+      // For other formats like Excel, CSV, etc.
+      return res.status(400).json({
+        success: false,
+        message: `Export format '${format}' is not supported. Available formats: json, pdf`
+      });
     }
+    
   } catch (err) {
+    console.error('Export error:', err);
     next(err);
   }
 };

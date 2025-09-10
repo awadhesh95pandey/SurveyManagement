@@ -96,31 +96,40 @@ const ReportsIndex = () => {
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      const result = await surveyApi.getSurveys();
-      if (result.success) {
-        const surveysData = result.data;
-        const totalSurveys = surveysData.length;
-        const activeSurveys = surveysData.filter(s => s.status === 'active').length;
-        const completedSurveys = surveysData.filter(s => s.status === 'completed').length;
-        
-        // Calculate total responses (this would need to be enhanced with actual response data)
-        const totalResponses = surveysData.reduce((sum, survey) => {
-          return sum + (survey.responseCount || 0);
-        }, 0);
+const fetchStats = async () => {
+  debugger;
+  try {
+    const result = await surveyApi.getSurveys();
+    if (result.success) {
+      const surveysData = result.data;
+      const totalSurveys = surveysData.length;
 
-        setStats({
-          totalSurveys,
-          activeSurveys,
-          completedSurveys,
-          totalResponses
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+      const activeSurveys = surveysData.filter(s => 
+        s.currentStatus === "active" ||
+        (new Date(s.publishDate) <= new Date() && new Date(s.endDate) >= new Date())
+      ).length;
+
+      const completedSurveys = surveysData.filter(s => 
+        s.currentStatus === "completed" ||
+        (new Date(s.endDate) < new Date())
+      ).length;
+
+      // Calculate total responses
+      const totalResponses = surveysData.reduce((sum, survey) => {
+        return sum + (survey.responseCount || 0);
+      }, 0);
+
+      setStats({
+        totalSurveys,
+        activeSurveys,
+        completedSurveys,
+        totalResponses
+      });
     }
-  };
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+  }
+};
 
   const fetchRecentReports = async () => {
     try {
@@ -394,6 +403,7 @@ const ReportsIndex = () => {
             </Grid>
             <Grid item xs={6} sm={6} md={3}>
               <Card sx={{ 
+                display: 'none', // Hide total responses for now
                 height: '100%', 
                 borderRadius: 2,
                 background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.08)}, ${alpha(theme.palette.warning.main, 0.12)})`,
@@ -416,7 +426,7 @@ const ReportsIndex = () => {
                   <Typography 
                     variant="h4" 
                     color="warning.main"
-                    sx={{ 
+                    sx={{
                       fontSize: isMobile ? '1.5rem' : '2rem',
                       fontWeight: 700,
                       lineHeight: 1

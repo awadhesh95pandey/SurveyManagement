@@ -582,14 +582,19 @@ export const reportApi = {
       });
       
       if (format !== 'json') {
-        // Create a download link
-        const url = window.URL.createObjectURL(new Blob([response.data]));
+        // Create a download link for file formats
+        const url = window.URL.createObjectURL(response.data);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `survey_results.${format}`);
+        
+        // Set appropriate file extension
+        const fileExtension = format === 'pdf' ? 'pdf' : format;
+        link.setAttribute('download', `survey_results.${fileExtension}`);
+        
         document.body.appendChild(link);
         link.click();
         link.remove();
+        window.URL.revokeObjectURL(url);
         
         return { success: true };
       }

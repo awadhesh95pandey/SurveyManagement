@@ -112,6 +112,7 @@ const SurveyReport = () => {
   }, [surveyId]);
 
   const fetchSurveyAndReport = async () => {
+    debugger
     setLoading(true);
     try {
       // Fetch report data (which now includes survey info)
@@ -164,6 +165,7 @@ const SurveyReport = () => {
   };
 
   const handleExport = async (format) => {
+    debugger
     try {
       await reportApi.exportSurveyResults(surveyId, format);
       toast.success(`Report exported as ${format.toUpperCase()}`);
@@ -174,6 +176,7 @@ const SurveyReport = () => {
   };
 
   const handleExportDetailed = async (format) => {
+    debugger
     try {
       await reportApi.exportDetailedSurveyResponses(surveyId, format);
       toast.success(`Detailed responses exported as ${format.toUpperCase()}`);
@@ -387,6 +390,7 @@ const SurveyReport = () => {
                 size={isMobile ? "small" : "medium"}
                 fullWidth={isMobile}
                 sx={{
+                  display: 'none', // Hide Excel export for now
                   borderColor: alpha(theme.palette.secondary.main, 0.3),
                   color: theme.palette.secondary.main,
                   fontSize: isMobile ? '0.75rem' : '0.875rem',
