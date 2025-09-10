@@ -248,7 +248,7 @@ const Dashboard = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Box>
                         <Typography variant="h6" component="div" sx={{ fontWeight: 600, mb: 0.25, fontSize: '1.25rem' }}>
-                          {loading ? <CircularProgress size={20} color="inherit" />  : completedSurveys.length}
+                          {loading ? <CircularProgress size={20} color="inherit" /> : completedSurveys.length}
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Completed Surveys</Typography>
                       </Box>
@@ -543,6 +543,128 @@ const Dashboard = () => {
             </Box>
           </Slide>
 
+          {/* Completed Surveys Section */}
+          <Slide direction="up" in timeout={1600}>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 600, fontSize: '1.25rem' }}>
+                Completed Surveys
+              </Typography>
+              
+              {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <CircularProgress size={40} />
+                </Box>
+              ) : completedSurveys.length > 0 ? (
+                <Grid container spacing={3}>
+                  {completedSurveys.map((survey, index) => (
+                    <Grid item xs={12} sm={6} lg={4} key={survey._id}>
+                      <Fade in timeout={1800 + index * 200}>
+                        <Card
+                          sx={{
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            borderRadius: 3,
+                            boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                              boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.12)}`,
+                            }
+                          }}
+                        >
+                          <CardContent sx={{ flexGrow: 1, p: 2, '&:last-child': { pb: 2 } }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+                              <Typography variant="subtitle1" component="div" sx={{ fontWeight: 600, flexGrow: 1, mr: 1, fontSize: '0.9rem' }}>
+                                {survey.name}
+                              </Typography>
+                              <Chip 
+                                label="Completed" 
+                                size="small" 
+                                sx={{ 
+                                  bgcolor: theme.palette.success.main, 
+                                  color: 'white',
+                                  fontWeight: 500,
+                                  fontSize: '0.7rem',
+                                  height: 20
+                                }} 
+                              />
+                            </Box>
+                            
+                            <Box sx={{ mb: 1.5 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                <PeopleIcon sx={{ fontSize: 14, mr: 0.75, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                  Department: {survey.department || 'All'}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <ScheduleIcon sx={{ fontSize: 14, mr: 0.75, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                  Ended: {new Date(new Date(survey.publishDate).getTime() + (survey.durationDays * 24 * 60 * 60 * 1000)).toLocaleDateString('en-IN', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    timeZone: 'Asia/Kolkata'
+                                  })}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                          <Divider />
+                          <CardActions sx={{ p: 1.5 }}>
+                            <Tooltip title="View Results">
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleViewSurvey(survey._id)}
+                                sx={{ 
+                                  color: theme.palette.success.main,
+                                  '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.08) },
+                                  width: 28,
+                                  height: 28
+                                }}
+                              >
+                                <TrendingUpIcon sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Button 
+                              size="small" 
+                              variant="outlined"
+                              onClick={() => handleViewSurvey(survey._id)}
+                              sx={{
+                                borderColor: alpha(theme.palette.success.main, 0.3),
+                                color: theme.palette.success.main,
+                                fontSize: '0.75rem',
+                                py: 0.5,
+                                px: 1.5,
+                                '&:hover': {
+                                  borderColor: theme.palette.success.main,
+                                  backgroundColor: alpha(theme.palette.success.main, 0.04),
+                                }
+                              }}
+                            >
+                              View Results
+                            </Button>
+                          </CardActions>
+                        </Card>
+                      </Fade>
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Card sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
+                  <AssignmentTurnedInIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1.5 }} />
+                  <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 0.5, fontSize: '0.9rem' }}>
+                    No Completed Surveys
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                    There are currently no completed surveys to display.
+                  </Typography>
+                </Card>
+              )}
+            </Box>
+          </Slide>
+
           {/* Admin Actions */}
           {isAdmin && (
             <Slide direction="up" in timeout={1600}>
@@ -601,4 +723,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

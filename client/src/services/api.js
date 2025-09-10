@@ -52,9 +52,9 @@ export const surveyApi = {
       return { success: true, data: response.data.data };
     } catch (error) {
       console.error('Error fetching completed surveys:', error);
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Failed to fetch completed surveys'
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to fetch completed surveys' 
       };
     }
   },

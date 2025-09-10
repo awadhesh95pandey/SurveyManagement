@@ -7,6 +7,7 @@ const {
   deleteSurvey,
   getUpcomingSurveys,
   getActiveSurveys,
+  getCompletedSurveys,
   updateSurveyStatus,
   generateConsentRecords,
   updateSurveyStatuses,
@@ -45,6 +46,9 @@ router.route('/upcoming')
 
 router.route('/active')
   .get(protect, getActiveSurveys);
+
+router.route('/completed')
+  .get(protect, getCompletedSurveys);
 
 router.route('/update-statuses')
   .get(protect, authorize('admin'), updateSurveyStatuses);
