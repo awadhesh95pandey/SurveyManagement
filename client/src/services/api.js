@@ -45,6 +45,20 @@ export const surveyApi = {
     }
   },
 
+  // Get completed surveys
+  getCompletedSurveys: async () => {
+    try {
+      const response = await axios.get('/api/surveys/completed');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      console.error('Error fetching completed surveys:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Failed to fetch completed surveys' 
+      };
+    }
+  },
+
   // Get a single survey
   getSurvey: async (id) => {
     try {

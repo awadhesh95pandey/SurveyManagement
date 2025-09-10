@@ -447,6 +447,41 @@ exports.getActiveSurveys = async (req, res, next) => {
   }
 };
 
+// @desc    Get completed surveys
+// @route   GET /api/surveys/completed
+// @access  Private
+exports.getCompletedSurveys = async (req, res, next) => {
+  try {
+    const now = new Date();
+
+    const completedSurveys = await Survey.find({
+      // Only include surveys that have been published
+      publishDate: { $lte: now },
+
+      // Survey has ended (current time is past the calculated end date)
+      $expr: {
+        $gt: [
+          now,
+          {
+            $add: [
+              "$publishDate",
+              { $multiply: ["$durationDays", 86400000] } // 86400000 ms = 1 day
+            ]
+          }
+        ]
+      }
+    }).sort('-createdAt'); // Sort by most recently created first
+
+    res.status(200).json({
+      success: true,
+      count: completedSurveys.length,
+      data: completedSurveys
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 
 
