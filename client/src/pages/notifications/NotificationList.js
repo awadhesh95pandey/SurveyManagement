@@ -106,6 +106,14 @@ const NotificationList = () => {
         return <EmailIcon color="info" />;
       case 'survey_reminder':
         return <NotificationsIcon color="warning" />;
+      case 'survey_available':
+        return <AssignmentIcon color="success" />;
+      case 'manager_notification':
+        return <EmailIcon color="secondary" />;
+      case 'reportee_notification':
+        return <EmailIcon color="secondary" />;
+      case 'general':
+        return <NotificationsIcon color="info" />;
       default:
         return <NotificationsIcon />;
     }
@@ -119,6 +127,14 @@ const NotificationList = () => {
         return 'Consent Request';
       case 'survey_reminder':
         return 'Survey Reminder';
+      case 'survey_available':
+        return 'Survey Available';
+      case 'manager_notification':
+        return 'Manager Notification';
+      case 'reportee_notification':
+        return 'Team Notification';
+      case 'general':
+        return 'General';
       default:
         return 'Notification';
     }
