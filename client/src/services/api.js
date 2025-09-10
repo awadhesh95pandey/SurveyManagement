@@ -676,34 +676,6 @@ export const notificationApi = {
   },
 
   // Get user's notifications
-  getUserNotifications: async () => {
-    try {
-      const response = await axios.get('/api/notifications');
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error('Error fetching user notifications:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Failed to fetch user notifications' 
-      };
-    }
-  },
-
-  // Mark notification as read
-  markNotificationRead: async (id) => {
-    try {
-      const response = await axios.put(`/api/notifications/${id}/read`);
-      return { success: true, data: response.data.data };
-    } catch (error) {
-      console.error(`Error marking notification ${id} as read:`, error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Failed to mark notification as read' 
-      };
-    }
-  },
-
-  // Get notifications
   getNotifications: async () => {
     try {
       const response = await axios.get('/api/notifications');
@@ -717,8 +689,8 @@ export const notificationApi = {
     }
   },
 
-  // Mark as read
-  markAsRead: async (id) => {
+  // Mark notification as read
+  markNotificationRead: async (id) => {
     try {
       const response = await axios.put(`/api/notifications/${id}/read`);
       return { success: true, data: response.data.data };

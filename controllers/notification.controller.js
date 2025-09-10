@@ -365,6 +365,8 @@ exports.markNotificationRead = async (req, res, next) => {
     const updatedNotification = await Notification.findByIdAndUpdate(
       req.params.id,
       {
+        read: true,
+        readAt: new Date(),
         deliveryStatus: 'opened'
       },
       {
@@ -382,3 +384,66 @@ exports.markNotificationRead = async (req, res, next) => {
   }
 };
 
+// @desc    Delete notification
+// @route   DELETE /api/notifications/:id
+// @access  Private
+exports.deleteNotification = async (req, res, next) => {
+  try {
+    const notification = await Notification.findById(req.params.id);
+    
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: `Notification not found with id of ${req.params.id}`
+      });
+    }
+    
+    // Make sure notification belongs to the current user
+    if (notification.userId.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: `User ${req.user.id} is not authorized to delete this notification`
+      });
+    }
+    
+    // Delete notification
+    await Notification.findByIdAndDelete(req.params.id);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Notification deleted successfully'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Mark all notifications as read
+// @route   PUT /api/notifications/mark-all-read
+// @access  Private
+exports.markAllAsRead = async (req, res, next) => {
+  try {
+    // Update all unread notifications for the current user
+    const result = await Notification.updateMany(
+      {
+        userId: req.user.id,
+        read: false
+      },
+      {
+        read: true,
+        readAt: new Date(),
+        deliveryStatus: 'opened'
+      }
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: `${result.modifiedCount} notifications marked as read`,
+      data: {
+        modifiedCount: result.modifiedCount
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
