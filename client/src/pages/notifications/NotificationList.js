@@ -33,6 +33,7 @@ const NotificationList = () => {
   }, []);
 
   const fetchNotifications = async () => {
+    debugger;
     setLoading(true);
     try {
       const result = await notificationApi.getNotifications();

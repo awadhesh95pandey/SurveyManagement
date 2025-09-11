@@ -389,8 +389,26 @@ const Dashboard = () => {
                               size="small" 
                               variant="contained"
                               startIcon={<PlayArrowIcon sx={{ fontSize: 14 }} />}
+                              onClick={() => handleViewSurvey(survey._id)}
+                              sx={{
+                                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                                fontSize: '0.75rem',
+                                py: 0.5,
+                                px: 1.5,
+                                '&:hover': {
+                                  background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                                }
+                              }}
+                            >
+                              View Survey
+                            </Button>
+                            <Button 
+                              size="small" 
+                              variant="contained"
+                              startIcon={<PlayArrowIcon sx={{ fontSize: 14 }} />}
                               onClick={() => handleAttemptSurvey(survey._id)}
                               sx={{
+                                display: 'none', // Hide Take Survey button for now
                                 background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
                                 fontSize: '0.75rem',
                                 py: 0.5,

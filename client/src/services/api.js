@@ -299,6 +299,7 @@ export const questionApi = {
 export const consentApi = {
   // Record user consent
   recordConsent: async (token, consent) => {
+    debugger
     try {
       const response = await axios.post(`/api/consent/${token}`, { consent });
       return { success: true, data: response.data.data };
@@ -313,6 +314,7 @@ export const consentApi = {
 
   // Verify consent token
   verifyConsentToken: async (token) => {
+    debugger
     try {
       const response = await axios.get(`/api/consent/${token}/verify`);
       return { success: true, data: response.data.data };
@@ -327,6 +329,7 @@ export const consentApi = {
 
   // Get consent status for a survey
   getSurveyConsentStatus: async (surveyId) => {
+    debugger
     try {
       const response = await axios.get(`/api/surveys/${surveyId}/consent`);
       return { success: true, data: response.data.data };
@@ -341,6 +344,7 @@ export const consentApi = {
 
   // Check if user has given consent for a survey
   checkUserConsent: async (surveyId) => {
+    debugger
     try {
       const response = await axios.get(`/api/surveys/${surveyId}/consent/check`);
       return { success: true, data: response.data.data };

@@ -121,9 +121,9 @@ const ConsentForm = () => {
             <Typography variant="body1" paragraph>
               {error}
             </Typography>
-            <Button variant="contained" color="primary" onClick={handleGoToLogin}>
+            {/* <Button variant="contained" color="primary" onClick={handleGoToLogin}>
               Go to Login
-            </Button>
+            </Button> */}
           </Paper>
         </Box>
       </Container>
@@ -158,9 +158,9 @@ const ConsentForm = () => {
                 ? 'You will receive a notification when the survey becomes available.'
                 : 'You have chosen not to participate in this survey. Your response has been recorded.'}
             </Typography>
-            <Button variant="contained" color="primary" onClick={handleGoToLogin}>
+            {/* <Button variant="contained" color="primary" onClick={handleGoToLogin}>
               Go to Login
-            </Button>
+            </Button> */}
           </Paper>
         </Box>
       </Container>
