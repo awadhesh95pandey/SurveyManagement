@@ -103,39 +103,30 @@ const Dashboard = () => {
   return (
     <Box sx={{ 
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.01)} 0%, ${alpha('#ffffff', 0.95)} 50%, ${alpha(theme.palette.secondary.main, 0.01)} 100%)`,
+      backgroundColor: theme.palette.background.default,
       position: 'relative',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dc2626' fill-opacity='0.005'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        opacity: 0.3,
-      }
     }}>
       <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 }}>
         <Box sx={{ py: 4 }}>
           {/* Header Section */}
           <Fade in timeout={800}>
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
                 <Box>
                   <Typography 
                     variant="h4" 
                     component="h1" 
                     sx={{ 
-                      fontWeight: 600,
+                      fontWeight: 700,
                       color: theme.palette.text.primary,
-                      mb: 0.5,
-                      fontSize: '1.75rem'
+                      mb: 1,
+                      fontSize: '2rem',
+                      letterSpacing: '-0.01em'
                     }}
                   >
-                    Welcome back, {user?.name || 'User'}!
+                    Welcome back, {user?.name || 'User'}! 👋
                   </Typography>
-                  <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
+                  <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 400 }}>
                     Here's what's happening with your surveys today
                   </Typography>
                 </Box>
@@ -148,16 +139,19 @@ const Dashboard = () => {
                     sx={{
                       display: 'none', // Hide Create Survey button for now
                       background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                      boxShadow: `0 4px 16px ${alpha(theme.palette.primary.main, 0.2)}`,
+                      boxShadow: `0 3px 12px ${alpha(theme.palette.primary.main, 0.25)}`,
+                      borderRadius: 1,
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
+                      px: 2,
+                      py: 1,
                       '&:hover': {
                         background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
                         transform: 'translateY(-1px)',
-                        boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.3)}`,
+                        boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.35)}`,
                       },
-                      transition: 'all 0.2s ease-in-out',
-                      fontSize: '0.875rem',
-                      px: 2,
-                      py: 1
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     }}
                   >
                     Create Survey
@@ -169,32 +163,39 @@ const Dashboard = () => {
           
           {/* Stats Section */}
           <Slide direction="up" in timeout={1000}>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12} sm={6} md={4}>
                 <Card
                   sx={{
-                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)}, ${alpha(theme.palette.primary.main, 0.12)})`,
+                    backgroundColor: alpha(theme.palette.primary.main, 0.02),
                     color: theme.palette.text.primary,
                     borderRadius: 2,
-                    boxShadow: `0 2px 12px ${alpha(theme.palette.primary.main, 0.1)}`,
-                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                    boxShadow: 'none',
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.15)}`,
+                      boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.12)}`,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
                     }
                   }}
                 >
-                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Box>
-                        <Typography variant="h6" component="div" sx={{ fontWeight: 600, mb: 0.25, fontSize: '1.25rem' }}>
-                          {loading ? <CircularProgress size={20} color="inherit" /> : activeSurveys.length}
+                  <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h4" component="div" sx={{ fontWeight: 700, mb: 0.5, fontSize: '2rem', color: theme.palette.primary.main }}>
+                          {loading ? <CircularProgress size={24} color="inherit" /> : activeSurveys.length}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Active Surveys</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem', fontWeight: 500 }}>
+                        <TrendingUpIcon sx={{ fontSize: 16, color: theme.palette.primary.main }} />
+                          Active Surveys</Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), width: 32, height: 32 }}>
-                        <AssignmentIcon sx={{ fontSize: 16, color: theme.palette.primary.main }} />
+                      <Avatar sx={{ 
+                        bgcolor: alpha(theme.palette.primary.main, 0.1), 
+                        width: 48, 
+                        height: 48,
+                        border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+                      }}>
+                        <AssignmentIcon sx={{ fontSize: 24, color: theme.palette.primary.main }} />
                       </Avatar>
                     </Box>
                   </CardContent>
@@ -203,60 +204,76 @@ const Dashboard = () => {
               <Grid item xs={12} sm={6} md={4}>
                 <Card
                   sx={{
-                    background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.08)}, ${alpha(theme.palette.secondary.main, 0.12)})`,
+                    backgroundColor: alpha(theme.palette.warning.main, 0.02),
                     color: theme.palette.text.primary,
                     borderRadius: 2,
-                    boxShadow: `0 2px 12px ${alpha(theme.palette.secondary.main, 0.1)}`,
-                    border: `1px solid ${alpha(theme.palette.secondary.main, 0.1)}`,
+                    boxShadow: 'none',
+                    border: `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: `0 4px 20px ${alpha(theme.palette.secondary.main, 0.15)}`,
+                      boxShadow: `0 4px 20px ${alpha(theme.palette.warning.main, 0.12)}`,
+                      backgroundColor: alpha(theme.palette.warning.main, 0.04),
                     }
                   }}
                 >
-                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Box>
-                        <Typography variant="h6" component="div" sx={{ fontWeight: 600, mb: 0.25, fontSize: '1.25rem' }}>
-                          {loading ? <CircularProgress size={20} color="inherit" /> : upcomingSurveys.length}
+                  <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h4" component="div" sx={{ fontWeight: 700, mb: 0.5, fontSize: '2rem', color: theme.palette.warning.main }}>
+                          {loading ? <CircularProgress size={24} color="inherit" /> : upcomingSurveys.length}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Upcoming Surveys</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem', fontWeight: 500 }}>
+                        <TrendingUpIcon sx={{ fontSize: 16, color: theme.palette.warning.main }} />  
+                          Upcoming Surveys</Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), width: 32, height: 32 }}>
-                        <ScheduleIcon sx={{ fontSize: 16, color: theme.palette.secondary.main }} />
+                      <Avatar sx={{ 
+                        bgcolor: alpha(theme.palette.warning.main, 0.1), 
+                        width: 48, 
+                        height: 48,
+                        border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`
+                      }}>
+                        <ScheduleIcon sx={{ fontSize: 24, color: theme.palette.warning.main }} />
                       </Avatar>
                     </Box>
+                 
                   </CardContent>
                 </Card>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <Card
                   sx={{
-                    background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.08)}, ${alpha(theme.palette.success.main, 0.12)})`,
+                    backgroundColor: alpha(theme.palette.success.main, 0.02),
                     color: theme.palette.text.primary,
                     borderRadius: 2,
-                    boxShadow: `0 2px 12px ${alpha(theme.palette.success.main, 0.1)}`,
-                    border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`,
+                    boxShadow: 'none',
+                    border: `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: `0 4px 20px ${alpha(theme.palette.success.main, 0.15)}`,
+                      boxShadow: `0 4px 20px ${alpha(theme.palette.success.main, 0.12)}`,
+                      backgroundColor: alpha(theme.palette.success.main, 0.04),
                     }
                   }}
                 >
-                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Box>
-                        <Typography variant="h6" component="div" sx={{ fontWeight: 600, mb: 0.25, fontSize: '1.25rem' }}>
-                          {loading ? <CircularProgress size={20} color="inherit" /> : completedSurveys.length}
+                  <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h4" component="div" sx={{ fontWeight: 700, mb: 0.5, fontSize: '2rem', color: theme.palette.success.main }}>
+                          {loading ? <CircularProgress size={24} color="inherit" /> : completedSurveys.length}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>Completed Surveys</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem', fontWeight: 500 }}>
+                        <TrendingUpIcon sx={{ fontSize: 16, color: theme.palette.success.main }} />
+                          Completed Surveys</Typography>
                       </Box>
-                      <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), width: 32, height: 32 }}>
-                        <AssignmentTurnedInIcon sx={{ fontSize: 16, color: theme.palette.success.main }} />
+                      <Avatar sx={{ 
+                        bgcolor: alpha(theme.palette.success.main, 0.1), 
+                        width: 48, 
+                        height: 48,
+                        border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`
+                      }}>
+                        <AssignmentTurnedInIcon sx={{ fontSize: 24, color: theme.palette.success.main }} />
                       </Avatar>
                     </Box>
+                 
                   </CardContent>
                 </Card>
               </Grid>
@@ -265,9 +282,9 @@ const Dashboard = () => {
 
           {/* Active Surveys Section */}
           <Slide direction="up" in timeout={1200}>
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h5" component="h2" sx={{ fontWeight: 600, fontSize: '1.25rem' }}>
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h5" component="h2" sx={{ fontWeight: 700, fontSize: '1.5rem', color: theme.palette.text.primary }}>
                   Active Surveys
                 </Typography>
                 <Button 
@@ -278,6 +295,9 @@ const Dashboard = () => {
                     borderColor: alpha(theme.palette.primary.main, 0.3),
                     color: theme.palette.primary.main,
                     fontSize: '0.8rem',
+                    borderRadius: 0.5,
+                    textTransform: 'none',
+                    fontWeight: 500,
                     '&:hover': {
                       borderColor: theme.palette.primary.main,
                       backgroundColor: alpha(theme.palette.primary.main, 0.04),
@@ -302,43 +322,45 @@ const Dashboard = () => {
                             height: '100%',
                             display: 'flex',
                             flexDirection: 'column',
-                            borderRadius: 3,
-                            boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
+                            borderRadius: 2,
+                            boxShadow: 'none',
+                            border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
+                            backgroundColor: theme.palette.background.paper,
                             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                             '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.12)}`,
+                              boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
                             }
                           }}
                         >
-                          <CardContent sx={{ flexGrow: 1, p: 2, '&:last-child': { pb: 2 } }}>
-                            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
-                              <Typography variant="subtitle1" component="div" sx={{ fontWeight: 600, flexGrow: 1, mr: 1, fontSize: '0.9rem' }}>
+                          <CardContent sx={{ flexGrow: 1, p: 3, '&:last-child': { pb: 3 } }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+                              <Typography variant="h6" component="div" sx={{ fontWeight: 600, flexGrow: 1, mr: 2, fontSize: '1.125rem', color: theme.palette.text.primary }}>
                                 {survey.name}
                               </Typography>
                               <Chip 
                                 label="Active" 
                                 size="small" 
                                 sx={{ 
-                                  bgcolor: theme.palette.success.light, 
-                                  color: 'white',
-                                  fontWeight: 500,
-                                  fontSize: '0.7rem',
-                                  height: 20
+                                  bgcolor: alpha(theme.palette.success.main, 0.1), 
+                                  color: theme.palette.success.main,
+                                  fontWeight: 600,
+                                  fontSize: '0.75rem',
+                                  height: 24,
+                                  border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`
                                 }} 
                               />
                             </Box>
                             
-                            <Box sx={{ mb: 1.5 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                <PeopleIcon sx={{ fontSize: 14, mr: 0.75, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            <Box sx={{ mb: 2 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <PeopleIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
                                   Department: {survey.department || 'All'}
                                 </Typography>
                               </Box>
-                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                <ScheduleIcon sx={{ fontSize: 14, mr: 0.75, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <ScheduleIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
                                   Started: {survey.publishDate 
                                     ? new Date(survey.publishDate).toLocaleDateString('en-IN', {
                                         day: '2-digit',
@@ -350,8 +372,8 @@ const Dashboard = () => {
                                 </Typography>
                               </Box>
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <TrendingUpIcon sx={{ fontSize: 14, mr: 0.75, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                <TrendingUpIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
                                   Closes in: {
                                     (() => {
                                       const publishDate = new Date(survey.publishDate);
@@ -370,38 +392,63 @@ const Dashboard = () => {
                             </Box>
                           </CardContent>
                           <Divider />
-                          <CardActions sx={{ p: 1.5 }}>
-                            <Tooltip title="View Survey">
+                          <CardActions sx={{ p: 3, gap: 1 }}>
+                            <Tooltip title="View Details">
                               <IconButton 
                                 size="small" 
                                 onClick={() => handleViewSurvey(survey._id)}
                                 sx={{ 
                                   color: theme.palette.primary.main,
                                   '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) },
-                                  width: 28,
-                                  height: 28
+                                  width: 32,
+                                  height: 32
                                 }}
                               >
-                                <VisibilityIcon sx={{ fontSize: 16 }} />
+                                <VisibilityIcon sx={{ fontSize: 18 }} />
                               </IconButton>
                             </Tooltip>
                             <Button 
                               size="small" 
-                              variant="outlined"
+                              variant="contained"
+                              startIcon={<PlayArrowIcon sx={{ fontSize: 16 }} />}
                               onClick={() => handleViewSurvey(survey._id)}
                               sx={{
-                                borderColor: alpha(theme.palette.primary.main, 0.3),
-                                color: theme.palette.primary.main,
-                                fontSize: '0.75rem',
-                                py: 0.5,
-                                px: 1.5,
+                                backgroundColor: theme.palette.primary.main,
+                                fontSize: '0.875rem',
+                                py: 0.75,
+                                px: 2,
+                                borderRadius: 1,
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                boxShadow: 'none',
                                 '&:hover': {
-                                  borderColor: theme.palette.primary.main,
-                                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                                  backgroundColor: theme.palette.primary.dark,
+                                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
                                 }
                               }}
                             >
                               View Survey
+                            </Button>
+                            <Button 
+                              size="small" 
+                              variant="contained"
+                              startIcon={<PlayArrowIcon sx={{ fontSize: 14 }} />}
+                              onClick={() => handleAttemptSurvey(survey._id)}
+                              sx={{
+                                display: 'none', // Hide Take Survey button for now
+                                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                                fontSize: '0.75rem',
+                                py: 0.5,
+                                px: 1.5,
+                                borderRadius: 0.5,
+                                textTransform: 'none',
+                                fontWeight: 500,
+                                '&:hover': {
+                                  background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                                }
+                              }}
+                            >
+                              Take Survey
                             </Button>
                           </CardActions>
                         </Card>
@@ -410,12 +457,12 @@ const Dashboard = () => {
                   ))}
                 </Grid>
               ) : (
-                <Card sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
-                  <AssignmentIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1.5 }} />
-                  <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 0.5, fontSize: '0.9rem' }}>
+                <Card sx={{ p: 4, textAlign: 'center', borderRadius: 2, backgroundColor: theme.palette.background.paper, border: `1px solid ${alpha(theme.palette.divider, 0.12)}` }}>
+                  <AssignmentIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontSize: '1.125rem', fontWeight: 600 }}>
                     No Active Surveys
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem', fontWeight: 400 }}>
                     There are currently no active surveys available.
                   </Typography>
                 </Card>
@@ -426,7 +473,7 @@ const Dashboard = () => {
           {/* Upcoming Surveys Section */}
           <Slide direction="up" in timeout={1400}>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 600, fontSize: '1.25rem' }}>
+              <Typography variant="h5" component="h2" sx={{ mb: 3, fontWeight: 700, fontSize: '1.5rem', color: theme.palette.text.primary }}>
                 Upcoming Surveys
               </Typography>
               
@@ -444,12 +491,13 @@ const Dashboard = () => {
                             height: '100%',
                             display: 'flex',
                             flexDirection: 'column',
-                            borderRadius: 3,
-                            boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
+                            borderRadius: 2,
+                            boxShadow: 'none',
+                            border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
+                            backgroundColor: theme.palette.background.paper,
                             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                             '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.12)}`,
+                              boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
                             }
                           }}
                         >
@@ -517,6 +565,9 @@ const Dashboard = () => {
                                 fontSize: '0.75rem',
                                 py: 0.5,
                                 px: 1.5,
+                                borderRadius: 0.5,
+                                textTransform: 'none',
+                                fontWeight: 500,
                                 '&:hover': {
                                   borderColor: theme.palette.primary.main,
                                   backgroundColor: alpha(theme.palette.primary.main, 0.04),
@@ -532,12 +583,12 @@ const Dashboard = () => {
                   ))}
                 </Grid>
               ) : (
-                <Card sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
-                  <PendingActionsIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1.5 }} />
-                  <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 0.5, fontSize: '0.9rem' }}>
+                <Card sx={{ p: 4, textAlign: 'center', borderRadius: 2, backgroundColor: theme.palette.background.paper, border: `1px solid ${alpha(theme.palette.divider, 0.12)}` }}>
+                  <PendingActionsIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontSize: '1.125rem', fontWeight: 600 }}>
                     No Upcoming Surveys
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem', fontWeight: 400 }}>
                     There are currently no upcoming surveys scheduled.
                   </Typography>
                 </Card>
@@ -548,7 +599,7 @@ const Dashboard = () => {
           {/* Completed Surveys Section */}
           <Slide direction="up" in timeout={1600}>
             <Box sx={{ mb: 3 }}>
-              <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 600, fontSize: '1.25rem' }}>
+              <Typography variant="h5" component="h2" sx={{ mb: 3, fontWeight: 700, fontSize: '1.5rem', color: theme.palette.text.primary }}>
                 Completed Surveys
               </Typography>
               
@@ -566,12 +617,13 @@ const Dashboard = () => {
                             height: '100%',
                             display: 'flex',
                             flexDirection: 'column',
-                            borderRadius: 3,
-                            boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
+                            borderRadius: 2,
+                            boxShadow: 'none',
+                            border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
+                            backgroundColor: theme.palette.background.paper,
                             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                             '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.12)}`,
+                              boxShadow: `0 4px 20px ${alpha(theme.palette.common.black, 0.08)}`,
                             }
                           }}
                         >
@@ -639,6 +691,9 @@ const Dashboard = () => {
                                 fontSize: '0.75rem',
                                 py: 0.5,
                                 px: 1.5,
+                                borderRadius: 0.5,
+                                textTransform: 'none',
+                                fontWeight: 500,
                                 '&:hover': {
                                   borderColor: theme.palette.success.main,
                                   backgroundColor: alpha(theme.palette.success.main, 0.04),
@@ -654,12 +709,12 @@ const Dashboard = () => {
                   ))}
                 </Grid>
               ) : (
-                <Card sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
-                  <AssignmentTurnedInIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1.5 }} />
-                  <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 0.5, fontSize: '0.9rem' }}>
+                <Card sx={{ p: 4, textAlign: 'center', borderRadius: 2, backgroundColor: theme.palette.background.paper, border: `1px solid ${alpha(theme.palette.divider, 0.12)}` }}>
+                  <AssignmentTurnedInIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontSize: '1.125rem', fontWeight: 600 }}>
                     No Completed Surveys
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem', fontWeight: 400 }}>
                     There are currently no completed surveys to display.
                   </Typography>
                 </Card>
@@ -670,45 +725,94 @@ const Dashboard = () => {
           {/* Admin Actions */}
           {isAdmin && (
             <Slide direction="up" in timeout={1600}>
-              <Box sx={{ mt: 3 }}>
-                <Card sx={{ p: 2.5, borderRadius: 2, background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.03)}, ${alpha(theme.palette.secondary.main, 0.03)})`, border: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
-                  <Typography variant="subtitle1" component="h3" sx={{ mb: 1.5, fontWeight: 600, fontSize: '1rem' }}>
-                    Admin Actions
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <Box sx={{ mt: 4 }}>
+                <Card sx={{ 
+                  p: 4, 
+                  borderRadius: 2, 
+                  backgroundColor: alpha(theme.palette.error.main, 0.02),
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.15)}`,
+                  boxShadow: 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    boxShadow: `0 4px 20px ${alpha(theme.palette.error.main, 0.12)}`,
+                    backgroundColor: alpha(theme.palette.error.main, 0.04),
+                  },
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '4px',
+                    background: `linear-gradient(90deg, ${theme.palette.error.main}, ${theme.palette.secondary.main})`,
+                  }
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                    <Avatar sx={{ 
+                      bgcolor: alpha(theme.palette.error.main, 0.1), 
+                      width: 48, 
+                      height: 48, 
+                      mr: 2,
+                      border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`
+                    }}>
+                      <SettingsIcon sx={{ color: theme.palette.error.main, fontSize: 24 }} />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3" sx={{ fontWeight: 700, fontSize: '1.25rem', mb: 0.5, color: theme.palette.error.main }}>
+                        Administrator Panel
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem', fontWeight: 400 }}>
+                        Manage surveys and system settings
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                     <Button 
                       variant="contained" 
-                      size="small"
+                      size="large"
                       startIcon={<AddIcon />}
                       onClick={handleCreateSurvey}
                       sx={{
-                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                        boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.2)}`,
+                        backgroundColor: theme.palette.primary.main,
+                        boxShadow: 'none',
+                        borderRadius: 1,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        px: 4,
+                        py: 1.5,
                         '&:hover': {
-                          background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
-                          transform: 'translateY(-1px)',
+                          backgroundColor: theme.palette.primary.dark,
                           boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
                         },
-                        transition: 'all 0.2s ease-in-out',
-                        fontSize: '0.8rem',
-                        px: 2
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       }}
                     >
                       Create New Survey
                     </Button>
                     <Button 
                       variant="outlined" 
-                      size="small"
+                      size="large"
                       startIcon={<SettingsIcon />}
                       onClick={handleViewAllSurveys}
                       sx={{
                         borderColor: alpha(theme.palette.primary.main, 0.3),
                         color: theme.palette.primary.main,
-                        fontSize: '0.8rem',
+                        borderRadius: 1,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        px: 4,
+                        py: 1.5,
+                        borderWidth: '1px',
                         '&:hover': {
                           borderColor: theme.palette.primary.main,
                           backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                        }
+                          borderWidth: '1px',
+                        },
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       }}
                     >
                       Manage Surveys
