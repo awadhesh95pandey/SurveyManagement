@@ -370,8 +370,8 @@ const Dashboard = () => {
                             </Box>
                           </CardContent>
                           <Divider />
-                          <CardActions sx={{ p: 1.5, gap: 0.75 }}>
-                            <Tooltip title="View Details">
+                          <CardActions sx={{ p: 1.5 }}>
+                            <Tooltip title="View Survey">
                               <IconButton 
                                 size="small" 
                                 onClick={() => handleViewSurvey(survey._id)}
@@ -387,38 +387,21 @@ const Dashboard = () => {
                             </Tooltip>
                             <Button 
                               size="small" 
-                              variant="contained"
-                              startIcon={<PlayArrowIcon sx={{ fontSize: 14 }} />}
+                              variant="outlined"
                               onClick={() => handleViewSurvey(survey._id)}
                               sx={{
-                                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                                borderColor: alpha(theme.palette.primary.main, 0.3),
+                                color: theme.palette.primary.main,
                                 fontSize: '0.75rem',
                                 py: 0.5,
                                 px: 1.5,
                                 '&:hover': {
-                                  background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                                  borderColor: theme.palette.primary.main,
+                                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
                                 }
                               }}
                             >
                               View Survey
-                            </Button>
-                            <Button 
-                              size="small" 
-                              variant="contained"
-                              startIcon={<PlayArrowIcon sx={{ fontSize: 14 }} />}
-                              onClick={() => handleAttemptSurvey(survey._id)}
-                              sx={{
-                                display: 'none', // Hide Take Survey button for now
-                                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                                fontSize: '0.75rem',
-                                py: 0.5,
-                                px: 1.5,
-                                '&:hover': {
-                                  background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
-                                }
-                              }}
-                            >
-                              Take Survey
                             </Button>
                           </CardActions>
                         </Card>

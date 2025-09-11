@@ -27,7 +27,7 @@ import {
   Avatar
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
-import { consentApi, surveyApi } from '../../services/api';
+import { consentApi, surveyApi, departmentApi } from '../../services/api';
 import { toast } from 'react-toastify';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -42,6 +42,7 @@ const ConsentStatus = () => {
   const [loading, setLoading] = useState(true);
   const [sendingEmails, setSendingEmails] = useState(false);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
+  const [departments, setDepartments] = useState([]);
   const { surveyId } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -50,10 +51,10 @@ const ConsentStatus = () => {
 
   useEffect(() => {
     fetchSurveyAndConsent();
+    fetchDepartments();
   }, [surveyId]);
 
   const fetchSurveyAndConsent = async () => {
-    debugger
     setLoading(true);
     try {
       // Fetch survey details
@@ -76,6 +77,25 @@ const ConsentStatus = () => {
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('An error occurred while fetching data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+    // Fetch departments function
+  const fetchDepartments = async () => {
+      debugger
+    setLoading(true);
+    try {
+      const result = await departmentApi.getDepartments();
+      if (result.success) {
+        setDepartments(result.data);
+      } else {
+        toast.error(result.message || 'Failed to fetch departments');
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      toast.error('Failed to fetch departments');
     } finally {
       setLoading(false);
     }
@@ -636,7 +656,7 @@ const ConsentStatus = () => {
                             {consent.userId?.email || 'Unknown'}
                           </TableCell>
                           <TableCell sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                            {consent.userId?.department || 'Unknown'}
+                            {departments.find(dep => dep.id === consent.userId?.department)?.name}
                           </TableCell>
                           <TableCell>
                             {getConsentChip(consent.consentGiven)}
