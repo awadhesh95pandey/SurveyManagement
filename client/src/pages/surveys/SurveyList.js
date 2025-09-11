@@ -305,51 +305,73 @@ const SurveyList = () => {
 
                                   {isAdmin && (
                                     <>
-                                      <Tooltip title="Edit">
+                                      {/* Edit button - disabled for active and closed surveys */}
+                                      <Tooltip title={survey.currentStatus !== 'upcoming' ? "Edit (Disabled)" : "Edit"}>
                                         <IconButton
                                           size="small"
                                           onClick={() => handleEditSurvey(survey._id)}
+                                          disabled={survey.currentStatus !== 'upcoming'}
                                           sx={{ 
-                                            color: theme.palette.primary.main,
+                                            color: survey.currentStatus !== 'upcoming' ? theme.palette.text.disabled : theme.palette.primary.main,
                                             width: 28,
                                             height: 28,
-                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) }
+                                            '&:hover': { 
+                                              bgcolor: survey.currentStatus !== 'upcoming' ? 'transparent' : alpha(theme.palette.primary.main, 0.08) 
+                                            },
+                                            '&.Mui-disabled': {
+                                              color: theme.palette.text.disabled,
+                                            }
                                           }}
                                         >
                                           <EditIcon sx={{ fontSize: 16 }} />
                                         </IconButton>
                                       </Tooltip>
 
-                                      <Tooltip title="Questions">
+                                      {/* Questions button - disabled for active and closed surveys */}
+                                      <Tooltip title={survey.currentStatus !== 'upcoming' ? "Questions (Disabled)" : "Questions"}>
                                         <IconButton
                                           size="small"
                                           onClick={() => handleManageQuestions(survey._id)}
+                                          disabled={survey.currentStatus !== 'upcoming'}
                                           sx={{ 
-                                            color: theme.palette.primary.main,
+                                            color: survey.currentStatus !== 'upcoming' ? theme.palette.text.disabled : theme.palette.primary.main,
                                             width: 28,
                                             height: 28,
-                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) }
+                                            '&:hover': { 
+                                              bgcolor: survey.currentStatus !== 'upcoming' ? 'transparent' : alpha(theme.palette.primary.main, 0.08) 
+                                            },
+                                            '&.Mui-disabled': {
+                                              color: theme.palette.text.disabled,
+                                            }
                                           }}
                                         >
                                           <QuestionAnswerIcon sx={{ fontSize: 16 }} />
                                         </IconButton>
                                       </Tooltip>
 
-                                      <Tooltip title="Consent">
+                                      {/* Consent button - disabled for closed surveys */}
+                                      <Tooltip title={survey.currentStatus === 'closed' ? "Consent (Disabled)" : "Consent"}>
                                         <IconButton
                                           size="small"
                                           onClick={() => handleManageConsent(survey._id)}
+                                          disabled={survey.currentStatus === 'closed'}
                                           sx={{ 
-                                            color: theme.palette.primary.main,
+                                            color: survey.currentStatus === 'closed' ? theme.palette.text.disabled : theme.palette.primary.main,
                                             width: 28,
                                             height: 28,
-                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) }
+                                            '&:hover': { 
+                                              bgcolor: survey.currentStatus === 'closed' ? 'transparent' : alpha(theme.palette.primary.main, 0.08) 
+                                            },
+                                            '&.Mui-disabled': {
+                                              color: theme.palette.text.disabled,
+                                            }
                                           }}
                                         >
                                           <HowToRegIcon sx={{ fontSize: 16 }} />
                                         </IconButton>
                                       </Tooltip>
 
+                                      {/* Report button - always enabled */}
                                       <Tooltip title="Report">
                                         <IconButton
                                           size="small"
@@ -365,6 +387,7 @@ const SurveyList = () => {
                                         </IconButton>
                                       </Tooltip>
 
+                                      {/* Delete button - always enabled */}
                                       <Tooltip title="Delete">
                                         <IconButton
                                           size="small"
@@ -488,4 +511,3 @@ const SurveyList = () => {
 };
 
 export default SurveyList;
-
